@@ -1,12 +1,12 @@
 /************************************************************************************************
- *   ____________ _   _  _____          _      _____ _    _ _______          __   _ _      _   
- *  |___  /  ____| \ | |/ ____|        | |    / ____| |  | |_   _\ \        / /  | | |    | |  
- *     / /| |__  |  \| | |     __ _ ___| |__ | |  __| |  | | | |  \ \  /\  / /_ _| | | ___| |_ 
- *    / / |  __| | . ` | |    / _` / __| '_ \| | |_ | |  | | | |   \ \/  \/ / _` | | |/ _ \ __|
- *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
- *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
- *                                       
- * Copyright (c) 2016-2018 The ZEN Developers
+ *  _________          _     ____          _           __        __    _ _      _   _   _ ___
+ * |__  / ___|__ _ ___| |__ / ___|_      _(_)_ __   __ \ \      / /_ _| | | ___| |_| | | |_ _|
+ *   / / |   / _` / __| '_ \\___ \ \ /\ / / | '_ \ / _` \ \ /\ / / _` | | |/ _ \ __| | | || |
+ *  / /| |__| (_| \__ \ | | |___) \ V  V /| | | | | (_| |\ V  V / (_| | | |  __/ |_| |_| || |
+ * /____\____\__,_|___/_| |_|____/ \_/\_/ |_|_| |_|\__, | \_/\_/ \__,_|_|_|\___|\__|\___/|___|
+ *                                                 |___/
+ *
+ * Copyright (c) 2016 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -57,6 +57,8 @@ import javax.swing.table.TableCellRenderer;
 
 /**
  * Table to be used for transactions, addresses etc.
+ *
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class DataTable 
 	extends JTable 
@@ -65,8 +67,6 @@ public class DataTable
 	protected int lastColumn = -1;
 	
 	protected JPopupMenu popupMenu;
-
-	private LanguageUtil langUtil = LanguageUtil.instance();
 	
 	public DataTable(final Object[][] rowData, final Object[] columnNames)
 	{
@@ -80,7 +80,7 @@ public class DataTable
 		popupMenu = new JPopupMenu();
 		int accelaratorKeyMask = Toolkit.getDefaultToolkit ().getMenuShortcutKeyMask();
 		
-		JMenuItem copy = new JMenuItem(langUtil.getString("data.table.menu.item.copy"));
+		JMenuItem copy = new JMenuItem("Copy value");
         popupMenu.add(copy);
         copy.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, accelaratorKeyMask));
         copy.addActionListener(new ActionListener() 
@@ -102,7 +102,7 @@ public class DataTable
 		});
         
         
-		JMenuItem exportToCSV = new JMenuItem(langUtil.getString("data.table.menu.item.export"));
+		JMenuItem exportToCSV = new JMenuItem("Export data to CSV...");
         popupMenu.add(exportToCSV);
         exportToCSV.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, accelaratorKeyMask));
         exportToCSV.addActionListener(new ActionListener() 
@@ -119,9 +119,10 @@ public class DataTable
 					// TODO: better error handling
 					JOptionPane.showMessageDialog(
 							DataTable.this.getRootPane().getParent(), 
-							langUtil.getString("data.table.option.pane.export.error.text",
-							ex.getMessage()),
-							langUtil.getString("data.table.option.pane.export.error.title"), JOptionPane.ERROR_MESSAGE);
+							"An unexpected error occurred when exporting data to CSV file.\n" +
+							"\n" +
+							ex.getMessage(),
+							"Error in CSV export", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		});
@@ -191,7 +192,7 @@ public class DataTable
         final String ENCODING = "UTF-8";
 		
 		JFileChooser fileChooser = new JFileChooser();
-		fileChooser.setDialogTitle(langUtil.getString("data.table.file.chooser.export.dialog.title"));
+		fileChooser.setDialogTitle("Export data to CSV file...");
 		fileChooser.setFileFilter(new FileNameExtensionFilter("CSV Files (*.csv)", "csv"));
 		 
 		int result = fileChooser.showSaveDialog(this.getRootPane().getParent());
@@ -227,17 +228,7 @@ public class DataTable
 			StringBuilder rowBuf = new StringBuilder();
 			for (int col = 0; col < this.getColumnCount(); col++)
 			{
-				String currentValue = this.getValueAt(row, col).toString();
-				// Make sure the field is escaped if it has commas
-				if (currentValue.contains(",") || currentValue.contains("\""))
-				{
-					if (currentValue.contains("\""))
-					{
-						currentValue = currentValue.replace("\"", "\"\"");
-					}
-					currentValue = "\"" + currentValue + "\"";
-				}
-				rowBuf.append(currentValue);
+				rowBuf.append(this.getValueAt(row, col).toString());
 				
 				if (col < (this.getColumnCount() - 1))
 				{
@@ -252,8 +243,8 @@ public class DataTable
 		
 		JOptionPane.showMessageDialog(
 			this.getRootPane().getParent(), 
-			langUtil.getString("data.table.option.pane.export.success.text",
-			f.getCanonicalPath()),
-			langUtil.getString("data.table.option.pane.export.success.title"), JOptionPane.INFORMATION_MESSAGE);
+			"The data has been exported successfully as CSV to location:\n" +
+			f.getCanonicalPath(),
+			"Export successful...", JOptionPane.INFORMATION_MESSAGE);
 	}
 }

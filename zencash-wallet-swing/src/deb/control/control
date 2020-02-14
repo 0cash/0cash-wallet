@@ -1,8 +1,0 @@
-Package: zencash-desktop-gui-wallet
-Version: 0.88.0
-Section: misc
-Priority: low
-Architecture: all
-Description: Horizen Desktop GUI Wallet 
-Maintainer: admin@horizen.global
-Depends: default-jdk, zen

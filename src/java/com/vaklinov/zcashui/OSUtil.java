@@ -1,12 +1,12 @@
 /************************************************************************************************
- *   ____________ _   _  _____          _      _____ _    _ _______          __   _ _      _   
- *  |___  /  ____| \ | |/ ____|        | |    / ____| |  | |_   _\ \        / /  | | |    | |  
- *     / /| |__  |  \| | |     __ _ ___| |__ | |  __| |  | | | |  \ \  /\  / /_ _| | | ___| |_ 
- *    / / |  __| | . ` | |    / _` / __| '_ \| | |_ | |  | | | |   \ \/  \/ / _` | | |/ _ \ __|
- *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
- *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
- *                                       
- * Copyright (c) 2016-2018 The ZEN Developers
+ *  _________          _     ____          _           __        __    _ _      _   _   _ ___
+ * |__  / ___|__ _ ___| |__ / ___|_      _(_)_ __   __ \ \      / /_ _| | | ___| |_| | | |_ _|
+ *   / / |   / _` / __| '_ \\___ \ \ /\ / / | '_ \ / _` \ \ /\ / / _` | | |/ _ \ __| | | || |
+ *  / /| |__| (_| \__ \ | | |___) \ V  V /| | | | | (_| |\ V  V / (_| | | |  __/ |_| |_| || |
+ * /____\____\__,_|___/_| |_|____/ \_/\_/ |_|_| |_|\__, | \_/\_/ \__,_|_|_|\___|\__|\___/|___|
+ *                                                 |___/
+ *
+ * Copyright (c) 2016 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@
  **********************************************************************************/
 package com.vaklinov.zcashui;
 
-import java.net.URISyntaxException;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Locale;
@@ -36,6 +36,8 @@ import java.util.Locale;
 
 /**
  * Utilities - may be OS dependent.
+ *
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class OSUtil
 {
@@ -44,28 +46,28 @@ public class OSUtil
 	{
 		LINUX, WINDOWS, MAC_OS, FREE_BSD, OTHER_BSD, SOLARIS, AIX, OTHER_UNIX, OTHER_OS
 	};
-	
-	
+
+
 	public static boolean isUnixLike(OS_TYPE os)
 	{
-		return os == OS_TYPE.LINUX || os == OS_TYPE.MAC_OS || os == OS_TYPE.FREE_BSD || 
-			   os == OS_TYPE.OTHER_BSD || os == OS_TYPE.SOLARIS || os == OS_TYPE.AIX || 
+		return os == OS_TYPE.LINUX || os == OS_TYPE.MAC_OS || os == OS_TYPE.FREE_BSD ||
+			   os == OS_TYPE.OTHER_BSD || os == OS_TYPE.SOLARIS || os == OS_TYPE.AIX ||
 			   os == OS_TYPE.OTHER_UNIX;
 	}
-	
-	
+
+
 	public static boolean isHardUnix(OS_TYPE os)
 	{
-		return os == OS_TYPE.FREE_BSD || 
-			   os == OS_TYPE.OTHER_BSD || os == OS_TYPE.SOLARIS || 
+		return os == OS_TYPE.FREE_BSD ||
+			   os == OS_TYPE.OTHER_BSD || os == OS_TYPE.SOLARIS ||
 			   os == OS_TYPE.AIX || os == OS_TYPE.OTHER_UNIX;
 	}
-	
-	
+
+
 	public static OS_TYPE getOSType()
 	{
 		String name = System.getProperty("os.name").toLowerCase(Locale.ROOT);
-		
+
 		if (name.contains("linux"))
 		{
 			return OS_TYPE.LINUX;
@@ -95,53 +97,45 @@ public class OSUtil
 			return OS_TYPE.OTHER_OS;
 		}
 	}
-	
-	
-	// Returns the name of the zcashd server - may vary depending on the OS.
+
+
+	// Returns the name of the 0cashd server - may vary depending on the OS.
 	public static String getZCashd()
 	{
-		String zcashd = "zend";
-		
+		String zcashd = "0cashd";
+
 		OS_TYPE os = getOSType();
 		if (os == OS_TYPE.WINDOWS)
 		{
 			zcashd += ".exe";
 		}
-		
+
 		return zcashd;
 	}
-	
-	
-	// Returns the name of the zen-cli tool - may vary depending on the OS.
+
+
+	// Returns the name of the zcash-cli tool - may vary depending on the OS.
 	public static String getZCashCli()
 	{
-		String zcashcli = "zen-cli";
-		
+		String zcashcli = "0cash-cli";
+
 		OS_TYPE os = getOSType();
 		if (os == OS_TYPE.WINDOWS)
 		{
 			zcashcli += ".exe";
 		}
-		
+
 		return zcashcli;
 	}
 
 
 	// Returns the directory that the wallet program was started from
 	public static String getProgramDirectory()
-		throws IOException, URISyntaxException
+		throws IOException
 	{
-		final String JAR_NAME = "ZENCashSwingWalletUI.jar";
-		File jarFile = new File(HorizenUI.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-
-		if (jarFile.exists()) {
-			String path = jarFile.getCanonicalPath();
-
-			return new File(path.substring(0, path.length() - JAR_NAME.length())).getCanonicalPath();
-		}
-
 		// TODO: this way of finding the dir is JAR name dependent - tricky, may not work
 		// if program is repackaged as different JAR!
+		final String JAR_NAME = "0cashWallet.jar";
 		String cp = System.getProperty("java.class.path");
 		if ((cp != null) && (cp.indexOf(File.pathSeparator) == -1) &&
 			(cp.endsWith(JAR_NAME)))
@@ -153,7 +147,7 @@ public class OSUtil
 				return pd.getCanonicalPath();
 			}
 		}
-		
+
 		// Try with a full class-path, now containing more libraries
 		// This too is very deployment specific
 		if (cp.indexOf(File.pathSeparator) != -1)
@@ -163,12 +157,12 @@ public class OSUtil
 			{
 				cp2 = cp2.substring(0, cp2.length() - 1);
 			}
-			
+
 			if (cp2.startsWith(File.pathSeparator))
 			{
 				cp2 = cp2.substring(1);
 			}
-			
+
 			final String CP_JARS = JAR_NAME + File.pathSeparator + "bitcoinj-core-0.14.5.jar" +
 					                          File.pathSeparator + "sqlite-jdbc-3.21.0.jar";
 			if (cp2.endsWith(CP_JARS))
@@ -183,13 +177,13 @@ public class OSUtil
 				{
 					startIndex = 0;
 				}
-				
+
 				if (cpStart.length() > startIndex)
 				{
 					File pd = new File(cpStart.substring(startIndex));
 					return pd.getCanonicalPath();
 				}
-			}			
+			}
 		}
 
 		// Current dir of the running JVM (expected)
@@ -208,8 +202,8 @@ public class OSUtil
 
 		return new File(".").getCanonicalPath();
 	}
-	
-	
+
+
 	public static File getUserHomeDirectory()
 		throws IOException
 	{
@@ -221,16 +215,16 @@ public class OSUtil
 		throws IOException
 	{
 		OS_TYPE os = getOSType();
-		
+
 		if (os == OS_TYPE.MAC_OS)
 		{
-			return new File(System.getProperty("user.home") + "/Library/Application Support/Zen").getCanonicalPath();
+			return new File(System.getProperty("user.home") + "/Library/Application Support/0cash").getCanonicalPath();
 		} else if (os == OS_TYPE.WINDOWS)
 		{
-			return new File(System.getenv("APPDATA") + "\\Zen").getCanonicalPath();
+			return new File(System.getenv("APPDATA") + "\\0cash").getCanonicalPath();
 		} else
 		{
-			return new File(System.getProperty("user.home") + "/.zen").getCanonicalPath();
+			return new File(System.getProperty("user.home") + "/.0cash").getCanonicalPath();
 		}
 	}
 
@@ -242,18 +236,18 @@ public class OSUtil
 	    File userHome = new File(System.getProperty("user.home"));
 	    File dir;
 	    OS_TYPE os = getOSType();
-	    
+
 	    if (os == OS_TYPE.MAC_OS)
 	    {
-	        dir = new File(userHome, "Library/Application Support/ZENCashSwingWalletUI");
+	        dir = new File(userHome, "Library/Application Support/0cashWallet");
 	    } else if (os == OS_TYPE.WINDOWS)
 		{
-			dir = new File(System.getenv("LOCALAPPDATA") + "\\ZENCashSwingWalletUI");
+			dir = new File(System.getenv("LOCALAPPDATA") + "\\0cashWallet");
 		} else
 	    {
-	        dir = new File(userHome.getCanonicalPath() + File.separator + ".ZENCashSwingWalletUI");
+	        dir = new File(userHome.getCanonicalPath() + File.separator + ".0cashWallet");
 	    }
-	    
+
 		if (!dir.exists())
 		{
 			if (!dir.mkdirs())
@@ -270,11 +264,11 @@ public class OSUtil
 		throws IOException, InterruptedException
 	{
 		OS_TYPE os = getOSType();
-		
+
 		if (os == OS_TYPE.MAC_OS)
 		{
 			CommandExecutor uname = new CommandExecutor(new String[] { "uname", "-sr" });
-		    return uname.execute() + "; " + 
+		    return uname.execute() + "; " +
 		           System.getProperty("os.name") + " " + System.getProperty("os.version");
 		} else if (os == OS_TYPE.WINDOWS)
 		{
@@ -287,16 +281,14 @@ public class OSUtil
 		}
 	}
 
-
-	// Can be used to find zend/zen-cli if it is not found in the same place as the wallet JAR
 	// Null if not found
 	public static File findZCashCommand(String command)
 		throws IOException
 	{
 	    File f;
-	    
+
 	    // Try with system property zcash.location.dir - may be specified by caller
-	    String ZCashLocationDir = System.getProperty("zen.location.dir");
+	    String ZCashLocationDir = System.getProperty("0cash.location.dir");
 	    if ((ZCashLocationDir != null) && (ZCashLocationDir.trim().length() > 0))
 	    {
 	        f = new File(ZCashLocationDir + File.separator + command);
@@ -305,9 +297,9 @@ public class OSUtil
 	            return f.getCanonicalFile();
 	        }
 	    }
-	    
+
 	    OS_TYPE os = getOSType();
-	    
+
 	    if (isUnixLike(os))
 	    {
 	    	// The following search directories apply to UNIX-like systems only
@@ -316,13 +308,13 @@ public class OSUtil
 				"/usr/bin/", // Typical Ubuntu
 				"/bin/",
 				"/usr/local/bin/",
-				"/usr/local/zen/bin/",
-				"/usr/lib/zen/bin/",
+				"/usr/local/0cash/bin/",
+				"/usr/lib/0cash/bin/",
 				"/opt/local/bin/",
-				"/opt/local/zen/bin/",
-				"/opt/zen/bin/"
+				"/opt/local/0cash/bin/",
+				"/opt/0cash/bin/"
 			};
-	
+
 			for (String d : dirs)
 			{
 				f = new File(d + command);
@@ -331,7 +323,7 @@ public class OSUtil
 					return f;
 				}
 			}
-			
+
 	    } else if (os == OS_TYPE.WINDOWS)
 	    {
 	    	// A probable Windows directory is a ZCash dir in Program Files
@@ -341,7 +333,7 @@ public class OSUtil
 	    		File pf = new File(programFiles);
 	    		if (pf.exists() && pf.isDirectory())
 	    		{
-	    			File ZDir = new File(pf, "Zen");
+	    			File ZDir = new File(pf, "0cash");
 	    			if (ZDir.exists() && ZDir.isDirectory())
 	    			{
 	    				File cf = new File(ZDir, command);
@@ -353,17 +345,17 @@ public class OSUtil
 	    		}
 	    	}
 	    }
-		
+
 		// Try in the current directory
 		f = new File("." + File.separator + command);
 		if (f.exists() && f.isFile())
 		{
 			return f.getCanonicalFile();
 		}
-			
+
 
 		// TODO: Try to find it with which/PATH
-		
+
 		return null;
 	}
 }

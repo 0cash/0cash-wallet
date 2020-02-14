@@ -6,7 +6,7 @@
  *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
  *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
  *                                                                                             
- * Copyright (c) 2016-2018 The ZEN Developers
+ * Copyright (c) 2017 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@ package com.vaklinov.zcashui.msg;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.FlowLayout;
 import java.awt.Cursor;
 import java.awt.FlowLayout;
 import java.awt.Toolkit;
@@ -75,6 +76,8 @@ import com.vaklinov.zcashui.StatusUpdateErrorReporter;
 
 /**
  * Main panel for messaging
+ *
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class JContactListPanel
 	extends JPanel
@@ -84,12 +87,12 @@ public class JContactListPanel
 	private ContactList      list;
 	private StatusUpdateErrorReporter errorReporter;
 	private JFrame           parentFrame;
-	
+
 	private JPopupMenu popupMenu;
-	
-	public JContactListPanel(MessagingPanel parent, 
+
+	public JContactListPanel(MessagingPanel parent,
 			                 JFrame parentFrame,
-			                 MessagingStorage messagingStorage, 
+			                 MessagingStorage messagingStorage,
 			                 StatusUpdateErrorReporter errorReporter)
 		throws IOException
 	{
@@ -126,7 +129,7 @@ public class JContactListPanel
         tempPanel.add(addButton);
         tempPanel.add(addGroupButton);
         upperPanel.add(tempPanel, BorderLayout.EAST);
-        
+
         upperPanel.add(new JLabel(
     			"<html><span style=\"font-size:1.6em;font-style:italic;\">&nbsp;</span>"),
     			BorderLayout.CENTER);
@@ -144,26 +147,26 @@ public class JContactListPanel
 		});
 		
 		// Add a listener for adding a group
-		addGroupButton.addActionListener(new ActionListener() 
-		{	
+		addGroupButton.addActionListener(new ActionListener()
+		{
 			@Override
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(ActionEvent e)
 			{
 				JContactListPanel.this.parent.addMessagingGroup();
 			}
 		});
 
-		
+
 		// Add a listener for removing a contact
-		removeButton.addActionListener(new ActionListener() 
-		{	
+		removeButton.addActionListener(new ActionListener()
+		{
 			@Override
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(ActionEvent e)
 			{
 				JContactListPanel.this.parent.removeSelectedContact();
 			}
 		});
-		
+
 		// Take care of updating the messages on selection
 		list.addListSelectionListener(new ListSelectionListener() 
 		{	
@@ -176,7 +179,7 @@ public class JContactListPanel
 					{
 						return; // Change is not final
 					}
-					
+
 					MessagingIdentity id = JContactListPanel.this.list.getSelectedValue();
 					
 					if (id == null)
@@ -200,7 +203,7 @@ public class JContactListPanel
 				}
 			}
 		});
-		
+
 		// Mouse listener is used to show the popup menu
 		list.addMouseListener(new MouseAdapter()
         {
@@ -216,7 +219,7 @@ public class JContactListPanel
                     }
                 }
         	}
-        	
+
             public void mouseReleased(MouseEvent e)
             {
             	if ((!e.isConsumed()) && e.isPopupTrigger())
@@ -225,19 +228,19 @@ public class JContactListPanel
             	}
             }
         });
-		
-		
+
+
 		// Actions of the popup menu
 		this.popupMenu = new JPopupMenu();
 		int accelaratorKeyMask = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
-		
+
 		JMenuItem showDetails = new JMenuItem("Show details...");
         popupMenu.add(showDetails);
         showDetails.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, accelaratorKeyMask));
-        showDetails.addActionListener(new ActionListener() 
-        {	
+        showDetails.addActionListener(new ActionListener()
+        {
 			@Override
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(ActionEvent e)
 			{
 				// Show a messaging identity dialog
 				if (list.getSelectedValue() != null)
@@ -248,14 +251,14 @@ public class JContactListPanel
 				}
 			}
 		});
-        
+
 		JMenuItem removeContact = new JMenuItem("Remove...");
         popupMenu.add(removeContact);
         removeContact.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, accelaratorKeyMask));
-        removeContact.addActionListener(new ActionListener() 
-        {	
+        removeContact.addActionListener(new ActionListener()
+        {
 			@Override
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(ActionEvent e)
 			{
 				JContactListPanel.this.parent.removeSelectedContact();
 			}
@@ -264,51 +267,51 @@ public class JContactListPanel
 		JMenuItem sendContactDetails = new JMenuItem("Send contact details...");
         popupMenu.add(sendContactDetails);
         sendContactDetails.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, accelaratorKeyMask));
-        sendContactDetails.addActionListener(new ActionListener() 
-        {	
+        sendContactDetails.addActionListener(new ActionListener()
+        {
 			@Override
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(ActionEvent e)
 			{
 				JContactListPanel.this.sendContactDetailsToSelectedContact();
 			}
 		});
 	}
-	
-	
+
+
 	public void sendContactDetailsToSelectedContact()
 	{
 		try
 		{
 			MessagingIdentity id = this.list.getSelectedValue();
-			
+
 			if (id == null)
 			{
 		        JOptionPane.showMessageDialog(
 			        this.parentFrame,
 			        "No messaging contact is selected in the contact list (on the right side of the UI).\n" +
 			        "In order to send contact details you need to select a contact first!",
-				    "No messaging contact is selected...", JOptionPane.ERROR_MESSAGE);					
+				    "No messaging contact is selected...", JOptionPane.ERROR_MESSAGE);
 				return;
 			}
-			
+
 			if (id.isAnonymous())
 			{
 		        int reply = JOptionPane.showConfirmDialog(
-			        this.parentFrame, 
+			        this.parentFrame,
 			        "The contact: " + id.getDiplayString() + "\n" +
-			        "is anonymous. Sending your contact details to them will reveal your messaging\n" +
-			        "identity! Are you sure you want to send your contact details to them?", 
-			        "Are you sure you want to send your contact details", 
+			        "is anonymous. Sending your contact details to him will reveal your messaging\n" +
+			        "identity! Are you sure you want to send your contact details to him?",
+			        "Are you sure you want to send your contact details",
 			        JOptionPane.YES_NO_OPTION);
-			        
-			    if (reply == JOptionPane.NO_OPTION) 
+
+			    if (reply == JOptionPane.NO_OPTION)
 			    {
 			      	return;
 			    }
 			}
-			
+
 			this.parent.sendIdentityMessageTo(id);
-			
+
 		} catch (Exception ioe)
 		{
 			Log.error("Unexpected error: ", ioe);
@@ -355,7 +358,7 @@ public class JContactListPanel
 	        contactBlackIcon = new ImageIcon(iconUrl);
 	        URL groupIconUrl = this.getClass().getClassLoader().getResource("images/contact-group-black.png");
 	        contactGroupBlackIcon = new ImageIcon(groupIconUrl);
-	        
+
 	        renderer = new JLabel();
 	        renderer.setOpaque(true);
 		}
@@ -377,7 +380,7 @@ public class JContactListPanel
 						{
 							return o1.isGroup() ? -1 : +1;
 						} else
-						{						
+						{
 							return o1.getDiplayString().toUpperCase().compareTo(
 								   o2.getDiplayString().toUpperCase());
 						}

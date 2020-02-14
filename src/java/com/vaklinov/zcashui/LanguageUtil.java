@@ -16,7 +16,7 @@ public class LanguageUtil {
 
     private static final String PREFERRED_LOCALE_FILE_NAME = "language_preferences.txt";
 
-    private static final String RESOURCE_BUNDLE_FILE_NAME = "messages.zencash";
+    private static final String RESOURCE_BUNDLE_FILE_NAME = "messages.0cash";
 
     private static final Locale DEFAULT_LOCALE = Locale.US;
 
@@ -70,7 +70,7 @@ public class LanguageUtil {
             try (PrintWriter printWriter = new PrintWriter(new FileWriter(languagePrefsFile))) {
                     printWriter.println(locale.getCountry());
             }
-            
+
         } catch (IOException e) {
             Log.error("Saving Preferred Locale Failed!!!!", e);
         }

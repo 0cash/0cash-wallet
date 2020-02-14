@@ -1,12 +1,12 @@
 /************************************************************************************************
- *   ____________ _   _  _____          _      _____ _    _ _______          __   _ _      _   
- *  |___  /  ____| \ | |/ ____|        | |    / ____| |  | |_   _\ \        / /  | | |    | |  
- *     / /| |__  |  \| | |     __ _ ___| |__ | |  __| |  | | | |  \ \  /\  / /_ _| | | ___| |_ 
- *    / / |  __| | . ` | |    / _` / __| '_ \| | |_ | |  | | | |   \ \/  \/ / _` | | |/ _ \ __|
- *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
- *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
- *                                       
- * Copyright (c) 2016-2018 The ZEN Developers
+ *  _________          _     ____          _           __        __    _ _      _   _   _ ___
+ * |__  / ___|__ _ ___| |__ / ___|_      _(_)_ __   __ \ \      / /_ _| | | ___| |_| | | |_ _|
+ *   / / |   / _` / __| '_ \\___ \ \ /\ / / | '_ \ / _` \ \ /\ / / _` | | |/ _ \ __| | | || |
+ *  / /| |__| (_| \__ \ | | |___) \ V  V /| | | | | (_| |\ V  V / (_| | | |  __/ |_| |_| || |
+ * /____\____\__,_|___/_| |_|____/ \_/\_/ |_|_| |_|\__, | \_/\_/ \__,_|_|_|\___|\__|\___/|___|
+ *                                                 |___/
+ *
+ * Copyright (c) 2016 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,10 +30,7 @@ package com.vaklinov.zcashui;
 
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -42,8 +39,6 @@ import java.util.HashMap;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -61,9 +56,13 @@ import com.vaklinov.zcashui.OSUtil.OS_TYPE;
 
 /**
  * Calls zcash-cli
+ *
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class ZCashClientCaller
 {
+	private ZCashInstallationObserver installationObserver =	new ZCashInstallationObserver(OSUtil.getProgramDirectory());
+	private Boolean isTestnet = installationObserver.isOnTestNet();
 	public static class WalletBalance
 	{
 		public double transparentBalance;
@@ -100,20 +99,7 @@ public class ZCashClientCaller
 
 	// ZCash client program and daemon
 	private File zcashcli, zcashd;
-	
-	// Table caching the wallet transaction times - to speed up performance
-	// TXID -> UNIX time as string
-	private Map<String, String> transactionTimes = Collections.synchronizedMap(
-		new HashMap<String, String>());
-	private long lastTransactionTimesAccess = System.currentTimeMillis();
 
-	// Table caching the wallet transaction confirmations - to speed up performance
-	// TXID -> confirmations as string
-	private Map<String, String> transactionConfirmations = Collections.synchronizedMap(
-		new HashMap<String, String>());
-	private long lastTransactionConfirmationsAccess = System.currentTimeMillis();
-
-	
 
 	public ZCashClientCaller(String installDir)
 		throws IOException
@@ -130,87 +116,69 @@ public class ZCashClientCaller
 		if ((zcashcli == null) || (!zcashcli.exists()))
 		{
 			throw new IOException(
-				"The Horizen installation directory " + installDir + " needs to contain " +
-				"the command line utilities zend and zen-cli. zen-cli is missing!");
+				"The 0cash installation directory " + installDir + " needs to contain " +
+				"the command line utilities 0cashd and 0cash-cli. zcash-cli is missing!");
 		}
-		
+
 		zcashd = new File(dir, OSUtil.getZCashd());
 		if (!zcashd.exists())
 		{
 		    zcashd = OSUtil.findZCashCommand(OSUtil.getZCashd());
 		}
-		
+
 		if (zcashd == null || (!zcashd.exists()))
 		{
 		    throw new IOException(
-		    	"The Horizen command line utility " + zcashcli.getCanonicalPath() + 
-		    	" was found, but zend was not found!");
+		    	"The 0cash command line utility " + zcashcli.getCanonicalPath() +
+		    	" was found, but 0cashd was not found!");
 		}
 	}
 
-	
-	public synchronized Process startDaemon() 
-		throws IOException, InterruptedException 
+
+	public synchronized Process startDaemon()
+		throws IOException, InterruptedException
 	{
 		String exportDir = OSUtil.getUserHomeDirectory().getCanonicalPath();
-		
-		List<String> zendOptions = Util.loadZendParameters(true);
-		Log.info("Custom zend options to be used are: {0}", zendOptions.toString());
-		
-		String zendFullCommandLine[] = new String[zendOptions.size() + 1];
-		zendFullCommandLine[0] = zcashd.getCanonicalPath();
-		
-		// Transfer the zend parameters, also possibly wrap them
-		for (int i = 0; i < zendOptions.size(); i++)
-		{
-			String option = zendOptions.get(i);
-			boolean containEq = option.contains("=");
-			boolean containsSpaces = option.contains(" ") || option.contains("\t");
-			
-			// The options come trimmed, however it is possible that they have weird content and need to be wrapped
-			// on Windows
-			if ((!containEq) || (containsSpaces))
-			{
-				option = wrapStringParameter(option);
-			}
-			
-			zendFullCommandLine[i+1] = option;
-		}
-		
-	    CommandExecutor starter = new CommandExecutor(zendFullCommandLine);
-	    
+
+	    CommandExecutor starter = new CommandExecutor(
+	        new String[]
+	        {
+	        	zcashd.getCanonicalPath(),
+	        	"-exportdir=" + exportDir
+	        });
+
 	    return starter.startChildProcess();
 	}
-	
-	
-	public /*synchronized*/ void stopDaemon() 
-		throws IOException,InterruptedException 
+
+
+	public /*synchronized*/ void stopDaemon()
+		throws IOException,InterruptedException
 	{
 	    CommandExecutor stopper = new CommandExecutor(
 	            new String[] { zcashcli.getCanonicalPath(), "stop" });
-	    
+
 	    String result = stopper.execute();
 	    Log.info("Stop command issued: " + result);
 	}
-	
 
-	public synchronized JsonObject getDaemonRawRuntimeInfo() 
-		throws IOException, InterruptedException, WalletCallException 
+
+	public synchronized JsonObject getDaemonRawRuntimeInfo()
+		throws IOException, InterruptedException, WalletCallException
 	{
 	    CommandExecutor infoGetter = new CommandExecutor(
 	            new String[] { zcashcli.getCanonicalPath(), "getinfo"} );
 	    String info = infoGetter.execute();
-	    
+
 	    if (info.trim().toLowerCase(Locale.ROOT).startsWith("error: couldn't connect to server"))
 	    {
 	    	throw new IOException(info.trim());
 	    }
-	    
+
 	    if (info.trim().toLowerCase(Locale.ROOT).startsWith("error: "))
 	    {
 	        info = info.substring(7);
-	        
-		    try 
+
+		    try
 		    {
 		        return Json.parse(info).asObject();
 		    } catch (ParseException pe)
@@ -223,7 +191,7 @@ public class ZCashClientCaller
 	    	return Util.getJsonErrorMessage(info);
 	    } else
 	    {
-		    try 
+		    try
 		    {
 		        return Json.parse(info).asObject();
 		    } catch (ParseException pe)
@@ -234,7 +202,7 @@ public class ZCashClientCaller
 	    }
 	}
 
-	
+
 	public synchronized WalletBalance getWalletInfo()
 		throws WalletCallException, IOException, InterruptedException
 	{
@@ -260,15 +228,15 @@ public class ZCashClientCaller
 		throws WalletCallException, IOException, InterruptedException
 	{
 		String notListed = "\u26D4";
-		
+
 		OS_TYPE os = OSUtil.getOSType();
 		if (os == OS_TYPE.WINDOWS)
 		{
 			notListed = " \u25B6";
 		}
-		
+
 	    JsonArray jsonTransactions = executeCommandAndGetJsonArray(
-	    	"listtransactions", wrapStringParameter(""), "2147483647");
+	    	"listtransactions", wrapStringParameter(""), "300");
 	    String strTransactions[][] = new String[jsonTransactions.size()][];
 	    for (int i = 0; i < jsonTransactions.size(); i++)
 	    {
@@ -276,13 +244,13 @@ public class ZCashClientCaller
 	    	JsonObject trans = jsonTransactions.get(i).asObject();
 
 	    	// Needs to be the same as in getWalletZReceivedTransactions()
-	    	// TODO: someday refactor to use object containers
+	    	// TODO: some day refactor to use object containers
 	    	strTransactions[i][0] = "\u2606T (Public)";
 	    	strTransactions[i][1] = trans.getString("category", "ERROR!");
 	    	strTransactions[i][2] = trans.get("confirmations").toString();
 	    	strTransactions[i][3] = trans.get("amount").toString();
 	    	strTransactions[i][4] = trans.get("time").toString();
-	    	strTransactions[i][5] = trans.getString("address", notListed + " (Z address not listed by wallet!)");
+	    	strTransactions[i][5] = trans.getString("address", notListed + " (Z Address not listed by wallet!)");
 	    	strTransactions[i][6] = trans.get("txid").toString();
 
 	    }
@@ -323,44 +291,12 @@ public class ZCashClientCaller
 
 		    	String txID = trans.getString("txid", "ERROR!");
 		    	// Needs to be the same as in getWalletPublicTransactions()
-		    	// TODO: someday refactor to use object containers
+		    	// TODO: some day refactor to use object containers
 		    	currentTransaction[0] = "\u2605Z (Private)";
 		    	currentTransaction[1] = "receive";
-		    	
-		    	// Transaction confirmations cached - cleared every 10 min
-		    	if ((System.currentTimeMillis() - this.lastTransactionConfirmationsAccess) > (10 * 60 * 1000))
-		    	{
-		    		this.lastTransactionConfirmationsAccess = System.currentTimeMillis();
-		    		this.transactionConfirmations.clear();
-		    	}
-		    	String confirmations = this.transactionConfirmations.get(txID);
-		    	if ((confirmations == null) || confirmations.equals("0"))
-		    	{
-		    		currentTransaction[2] = this.getWalletTransactionConfirmations(txID);
-		    		this.transactionConfirmations.put(txID, currentTransaction[2]);
-		    	} else
-		    	{
-		    		currentTransaction[2] = confirmations;
-		    	}
-		    	
+		    	currentTransaction[2] = this.getWalletTransactionConfirmations(txID);
 		    	currentTransaction[3] = trans.get("amount").toString();
-		    	
-		    	// Transaction time is cached - cleared every 10 min
-		    	if ((System.currentTimeMillis() - this.lastTransactionTimesAccess) > (10 * 60 * 1000))
-		    	{
-		    		this.lastTransactionTimesAccess = System.currentTimeMillis();
-		    		this.transactionTimes.clear();
-		    	}
-		    	String time = this.transactionTimes.get(txID);
-		    	if ((time == null) || (time.equals("-1")))
-		    	{
-		    		currentTransaction[4] = this.getWalletTransactionTime(txID);
-		    		this.transactionTimes.put(txID, currentTransaction[4]);
-		    	} else
-		    	{
-		    		currentTransaction[4] = time;
-		    	}
-		    	
+		    	currentTransaction[4] = this.getWalletTransactionTime(txID); // TODO: minimize sub-calls
 		    	currentTransaction[5] = zAddress;
 		    	currentTransaction[6] = trans.get("txid").toString();
 
@@ -371,7 +307,7 @@ public class ZCashClientCaller
 		return zReceivedTransactions.toArray(new String[0][]);
 	}
 
-	
+
 	public synchronized JsonObject[] getTransactionMessagingDataForZaddress(String ZAddress)
 		throws WalletCallException, IOException, InterruptedException
 	{
@@ -383,10 +319,10 @@ public class ZCashClientCaller
 		   	JsonObject trans = jsonTransactions.get(i).asObject();
 	    	transactions.add(trans);
 	    }
-		
+
 		return transactions.toArray(new JsonObject[0]);
 	}
-	
+
 
 	// ./src/zcash-cli listunspent only returns T addresses it seems
 	public synchronized String[] getWalletPublicAddressesWithUnspentOutputs()
@@ -421,7 +357,7 @@ public class ZCashClientCaller
 		return addresses.toArray(new String[0]);
     }
 
-	
+
 	public synchronized Map<String, String> getRawTransactionDetails(String txID)
 		throws WalletCallException, IOException, InterruptedException
 	{
@@ -434,16 +370,16 @@ public class ZCashClientCaller
 		{
 			this.decomposeJSONValue(name, jsonTransaction.get(name), map);
 		}
-				
+
 		return map;
 	}
-	
+
     public synchronized String getMemoField(String acc, String txID)
 		throws WalletCallException, IOException, InterruptedException
 	{
 		JsonArray jsonTransactions = this.executeCommandAndGetJsonArray(
 			"z_listreceivedbyaddress", wrapStringParameter(acc));
-			
+
         for (int i = 0; i < jsonTransactions.size(); i++)
         {
             if (jsonTransactions.get(i).asObject().getString("txid",  "ERROR!").equals(txID))
@@ -452,10 +388,10 @@ public class ZCashClientCaller
             	{
             		return null;
             	}
-            	
+
                 String memoHex = jsonTransactions.get(i).asObject().getString("memo", "ERROR!");
                 String decodedMemo = Util.decodeHexMemo(memoHex);
-                
+
                 // Return only if not null - sometimes multiple incoming transactions have the same ID
                 // if we have loopback send etc.
                 if (decodedMemo != null)
@@ -467,16 +403,16 @@ public class ZCashClientCaller
 
         return null;
 	}
-	
-    
+
+
 	public synchronized void keypoolRefill(int count)
 		throws WalletCallException, IOException, InterruptedException
 	{
 		String result = this.executeCommandAndGetSingleStringResponse(
 			"keypoolrefill", String.valueOf(count));
 	}
-    
-	
+
+
 	public synchronized String getRawTransaction(String txID)
 		throws WalletCallException, IOException, InterruptedException
 	{
@@ -487,7 +423,7 @@ public class ZCashClientCaller
 	}
 
 
-	// return UNIX time as string
+	// return UNIX time as tring
 	public synchronized String getWalletTransactionTime(String txID)
 		throws WalletCallException, IOException, InterruptedException
 	{
@@ -496,8 +432,8 @@ public class ZCashClientCaller
 
 		return String.valueOf(jsonTransaction.getLong("time", -1));
 	}
-	
-	
+
+
 	public synchronized String getWalletTransactionConfirmations(String txID)
 		throws WalletCallException, IOException, InterruptedException
 	{
@@ -506,8 +442,8 @@ public class ZCashClientCaller
 
 		return jsonTransaction.get("confirmations").toString();
 	}
-	
-	
+
+
 	// Checks if a certain T address is a watch-only address or is otherwise invalid.
 	public synchronized boolean isWatchOnlyOrInvalidAddress(String address)
 		throws WalletCallException, IOException, InterruptedException
@@ -518,10 +454,10 @@ public class ZCashClientCaller
 		{
 			return response.getBoolean("iswatchonly", true);
 		}
-		
+
 		return true;
 	}
-	
+
 
 	// Returns confirmed balance only!
 	public synchronized String getBalanceForAddress(String address)
@@ -551,15 +487,10 @@ public class ZCashClientCaller
 	}
 
 
-	// Returns OPID - this method is a bit old and could be improved, however it is known to work and would better not
-	// be changed unless there is a bug.
+	// Returns OPID
 	public synchronized String sendCash(String from, String to, String amount, String memo, String transactionFee)
 		throws WalletCallException, IOException, InterruptedException
 	{
-		Log.info("Starting operation send-cash. Parameters are: from address: {0}, to address: {1}, " + 
-	             "amount: {2}, memo: {3}, transaction fee: {4}",
-				 from, to, amount, memo, transactionFee);
-		
 		StringBuilder hexMemo = new StringBuilder();
 		for (byte c : memo.getBytes("UTF-8"))
 		{
@@ -585,7 +516,7 @@ public class ZCashClientCaller
 
 		JsonArray toMany = new JsonArray();
 		toMany.add(toArgument);
-		
+
 		String amountPattern = "\"amount\":\"\uFFFF\uFFFF\uFFFF\uFFFF\uFFFF\"";
 		// Make sure our replacement hack never leads to a mess up
 		String toManyBeforeReplace = toMany.toString();
@@ -597,8 +528,8 @@ public class ZCashClientCaller
 		}
 
 		DecimalFormatSymbols decSymbols = new DecimalFormatSymbols(Locale.ROOT);
-		
-		// Properly format the transaction fee as a number
+
+		// Properly format teh transaction fee as a number
 		if ((transactionFee == null) || (transactionFee.trim().length() <= 0))
 		{
 			transactionFee = "0.0001"; // Default value
@@ -613,7 +544,7 @@ public class ZCashClientCaller
 		String toManyArrayStr =	toMany.toString().replace(
 		    amountPattern,
 			"\"amount\":" + new DecimalFormat("########0.00######", decSymbols).format(Double.valueOf(amount)));
-		
+
 		String[] sendCashParameters = new String[]
 	    {
 		    this.zcashcli.getCanonicalPath(), "z_sendmany", wrapStringParameter(from),
@@ -623,16 +554,16 @@ public class ZCashClientCaller
 		    // transaction fee
 		    transactionFee
 		};
-		
+
 		// Safeguard to make sure the monetary amount does not differ after formatting
 		BigDecimal bdAmout = new BigDecimal(amount);
 		JsonArray toManyVerificationArr = Json.parse(toManyArrayStr).asArray();
-		BigDecimal bdFinalAmount = 
+		BigDecimal bdFinalAmount =
 			new BigDecimal(toManyVerificationArr.get(0).asObject().getDouble("amount", -1));
 		BigDecimal difference = bdAmout.subtract(bdFinalAmount).abs();
 		if (difference.compareTo(new BigDecimal("0.000000015")) >= 0)
 		{
-			throw new WalletCallException("Error in forming z_sendmany command: Amount differs after formatting: " + 
+			throw new WalletCallException("Error in forming z_sendmany command: Amount differs after formatting: " +
 		                                  amount + " | " + toManyArrayStr);
 		}
 
@@ -640,7 +571,7 @@ public class ZCashClientCaller
                 sendCashParameters[0] + " " + sendCashParameters[1] + " " +
                 sendCashParameters[2] + " " + sendCashParameters[3] + " " +
                 sendCashParameters[4] + " " + sendCashParameters[5] + ".");
-		
+
 		// Create caller to send cash
 	    CommandExecutor caller = new CommandExecutor(sendCashParameters);
 	    String strResponse = caller.execute();
@@ -651,7 +582,7 @@ public class ZCashClientCaller
 		  	throw new WalletCallException("Error response from wallet: " + strResponse);
 		}
 
-		Log.info("Sent cash with the following command: " +
+		Log.info("Sending cash with the following command: " +
                 sendCashParameters[0] + " " + sendCashParameters[1] + " " +
                 sendCashParameters[2] + " " + sendCashParameters[3] + " " +
                 sendCashParameters[4] + " " + sendCashParameters[5] + "." +
@@ -659,132 +590,8 @@ public class ZCashClientCaller
 
 		return strResponse.trim();
 	}
-	
-	
-	/**
-	 * Sends ZEN from a source address to a destination address. The change is sent back to the source address.
-	 * The amount of change is calculated based on the existing confirmed balance for the address (parameter).
-	 * This may not be 100% accurate if the blockchain is not synchronized.
-	 * 
-	 * @param from source address (T/Z)
-	 * @param to destination address (T/Z)
-	 * @param balance current confirmed balance of the source address
-	 * @param amount ZEN amount to send
-	 * @param memo text memo to include in the transaction
-	 * @param transactionFee transaction see to include
-	 * 
-	 * @return a zend operation ID for the send operation
-	 * 
-	 * @throws WalletCallException
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	public synchronized String sendCashWithReturnOfChange(String from, String to, String balance, 
-			                                              String amount, String memo, String transactionFee)
-		throws WalletCallException, IOException, InterruptedException
-	{
-		Log.info("Starting operation send cash with return of change. Parameters are: from address: {0}, to address: {1}, " + 
-	             "current balance: {2}, amount: {3}, memo: {4}, transaction fee: {5}",
-				 from, to, balance, amount, memo, transactionFee);
-		
-		final DecimalFormatSymbols decSymbols = new DecimalFormatSymbols(Locale.ROOT);
-		final DecimalFormat sendNumberFormat = new DecimalFormat("########0.00######", decSymbols);
-		
-		String hexMemo = Util.encodeHexString(memo);
-		// Form the main amount to send
-		JsonObject toDestinationArgument = new JsonObject();
-		toDestinationArgument.set("address", to);
-		if (hexMemo.length() >= 2)
-		{
-			toDestinationArgument.set("memo", hexMemo.toString());
-		}
-		String formattedAmountToSend = sendNumberFormat.format(new BigDecimal(amount));
-		String formattedTransactionFee = sendNumberFormat.format(new BigDecimal(transactionFee));
-		toDestinationArgument.set("amount", formattedAmountToSend);
-		// Form the return amount - based on the balance
-		JsonObject backToSourceArgument = new JsonObject();
-		backToSourceArgument.set("address", from);
-		BigDecimal changeToSendBackBD = new BigDecimal(balance).
-			subtract(new BigDecimal(formattedAmountToSend)).subtract(new BigDecimal(formattedTransactionFee));
-		boolean changeIsZero = false;
-		if (changeToSendBackBD.compareTo(new BigDecimal("0")) < 0)
-		{
-			throw new WalletCallException("Error: change was calculated negative");
-		} else if (changeToSendBackBD.compareTo(new BigDecimal("0")) == 0)
-		{
-			Log.info("Change was calculated exactly zero - will not be sent back!");
-			changeIsZero = true;
-		}
-		
-		String formattedChangeToReturn = sendNumberFormat.format(changeToSendBackBD);
-		backToSourceArgument.set("amount", formattedChangeToReturn);
 
-		// Array of two addresses to send to
-		JsonArray toMany = new JsonArray();
-		toMany.add(toDestinationArgument);
-		if (!changeIsZero)
-		{
-			toMany.add(backToSourceArgument);
-		}
-		
-		String toManyArrayStr =	toMany.toString(WriterConfig.MINIMAL);		
-		String[] sendCashParameters = new String[]
-	    {
-		    this.zcashcli.getCanonicalPath(), "z_sendmany", wrapStringParameter(from),
-		    wrapStringParameter(toManyArrayStr),
-		    // Default min confirmations for the input transactions is 1
-		    "1",
-		    // transaction fee
-		    formattedTransactionFee
-		};
-		
-		// Safeguard to make sure the monetary amount does not differ after formatting
-		BigDecimal bdAmout = new BigDecimal(amount); // original amount used for check
-		JsonArray toManyVerificationArr = Json.parse(toManyArrayStr).asArray();
-		BigDecimal bdFinalAmount = 
-			new BigDecimal(toManyVerificationArr.get(0).asObject().getString("amount", "-1"));
-		BigDecimal amountCheckDifference = bdAmout.subtract(bdFinalAmount).abs();
-		if (amountCheckDifference.compareTo(new BigDecimal("0.0")) > 0) // MUST be exact
-		{
-			throw new WalletCallException("Error in forming z_sendmany command: Main amount differs after formatting: " + 
-					                      formattedAmountToSend + " | \n" + toManyArrayStr);
-		}		
-		// Amount + change + fee = balance // This must also match
-		BigDecimal bdFinalChange = changeIsZero ?  
-			new BigDecimal("0") : new BigDecimal(toManyVerificationArr.get(1).asObject().getString("amount", "-1"));
-		amountCheckDifference = bdFinalChange.add(bdFinalAmount).add(new BigDecimal(formattedTransactionFee)).
-			subtract(new BigDecimal(balance)).abs(); // Original balance used after formatting
-		if (amountCheckDifference.compareTo(new BigDecimal("0.0")) > 0) // MUST be exact
-		{
-			throw new WalletCallException("Error in forming z_sendmany command: Sum differs after formatting: " + 
-					                      formattedAmountToSend + " | \n" + toManyArrayStr);
-		}		
-		
-		Log.info("The following send command (with change return) will be issued: " +
-                sendCashParameters[0] + " " + sendCashParameters[1] + " " +
-                sendCashParameters[2] + " " + sendCashParameters[3] + " " +
-                sendCashParameters[4] + " " + sendCashParameters[5] + ".");
-		
-		// Create caller to send cash
-	    CommandExecutor caller = new CommandExecutor(sendCashParameters);
-	    String strResponse = caller.execute();
 
-		if (strResponse.trim().toLowerCase(Locale.ROOT).startsWith("error:") ||
-			strResponse.trim().toLowerCase(Locale.ROOT).startsWith("error code:"))
-		{
-		  	throw new WalletCallException("Error response from wallet: " + strResponse);
-		}
-
-		Log.info("Sent cash (with change back) with the following command: " +
-                sendCashParameters[0] + " " + sendCashParameters[1] + " " +
-                sendCashParameters[2] + " " + sendCashParameters[3] + " " +
-                sendCashParameters[4] + " " + sendCashParameters[5] + "." +
-                " Got result: [" + strResponse + "]");
-
-		return strResponse.trim();
-	}
-	
-	
 	// Returns OPID
 	public synchronized String sendMessage(String from, String to, double amount, double fee, String memo)
 		throws WalletCallException, IOException, InterruptedException
@@ -796,18 +603,18 @@ public class ZCashClientCaller
 		{
 			toArgument.set("memo", hexMemo.toString());
 		}
-		
+
 		DecimalFormatSymbols decSymbols = new DecimalFormatSymbols(Locale.ROOT);
 
 		// TODO: The JSON Builder has a problem with double values that have no fractional part
-		// it serializes them as integers that ZCash does not accept. This will work with the 
+		// it serializes them as integers that ZCash does not accept. This will work with the
 		// fractional amounts always used for messaging
 		toArgument.set("amount", new DecimalFormat("########0.00######", decSymbols).format(amount));
 
 		JsonArray toMany = new JsonArray();
 		toMany.add(toArgument);
-		
-		String toManyArrayStr =	toMany.toString();		
+
+		String toManyArrayStr =	toMany.toString();
 		String[] sendCashParameters = new String[]
 	    {
 		    this.zcashcli.getCanonicalPath(), "z_sendmany", wrapStringParameter(from),
@@ -817,7 +624,7 @@ public class ZCashClientCaller
 		    // transaction fee
 		    new DecimalFormat("########0.00######", decSymbols).format(fee)
 		};
-				
+
 		// Create caller to send cash
 	    CommandExecutor caller = new CommandExecutor(sendCashParameters);
 	    String strResponse = caller.execute();
@@ -847,16 +654,16 @@ public class ZCashClientCaller
 
 		return response.trim();
 	}
-	
-	
+
+
 	// Verifies a message - true if OK
 	public synchronized boolean verifyMessage(String address, String signature, String message)
 		throws WalletCallException, IOException, InterruptedException
 	{
 	    String response = this.executeCommandAndGetSingleStringResponse(
-	    	"verifymessage", 
-	    	wrapStringParameter(address), 
-	    	wrapStringParameter(signature), 
+	    	"verifymessage",
+	    	wrapStringParameter(address),
+	    	wrapStringParameter(signature),
 	    	wrapStringParameter(message));
 
 		return response.trim().equalsIgnoreCase("true");
@@ -911,8 +718,8 @@ public class ZCashClientCaller
 			throw new WalletCallException("Unexpected final operation status response from wallet: " + response.toString());
 		}
 	}
-	
-	
+
+
 	public synchronized String getSuccessfulOperationTXID(String opID)
         throws WalletCallException, IOException, InterruptedException
 	{
@@ -920,8 +727,8 @@ public class ZCashClientCaller
 		JsonArray response = this.executeCommandAndGetJsonArray(
 			"z_getoperationstatus", wrapStringParameter("[\"" + opID + "\"]"));
 		JsonObject jsonStatus = response.get(0).asObject();
-		JsonValue  opResultValue = jsonStatus.get("result"); 
-		
+		JsonValue  opResultValue = jsonStatus.get("result");
+
 		if (opResultValue != null)
 		{
 			JsonObject opResult = opResultValue.asObject();
@@ -930,7 +737,7 @@ public class ZCashClientCaller
 				TXID = opResult.get("txid").asString();
 			}
 		}
-		
+
 		return TXID;
 	}
 
@@ -1025,7 +832,7 @@ public class ZCashClientCaller
    			 if ((respObject.getDouble("code", -1) == -15) &&
    				 (respObject.getString("message", "ERR").indexOf("unencrypted wallet") != -1))
    			 {
-   				 // Obviously unencrypted
+   				 // Obviously unencrupted
    				 return false;
    			 } else
    			 {
@@ -1037,7 +844,7 @@ public class ZCashClientCaller
    			 if ((respObject.getDouble("code", -1) == -15) &&
    				 (respObject.getString("message", "ERR").indexOf("unencrypted wallet") != -1))
    			 {
-   				 // Obviously unencrypted
+   				 // Obviously unencrupted
    				 return false;
    			 } else
    			 {
@@ -1070,135 +877,157 @@ public class ZCashClientCaller
 		Log.info("Result of wallet encryption is: \n" + response);
 		// If no exception - obviously successful
 	}
-	
-	
+
+
 	public synchronized String backupWallet(String fileName)
 		throws WalletCallException, IOException, InterruptedException
 	{
 		Log.info("Backup up wallet to location: " + fileName);
 		String response = this.executeCommandAndGetSingleStringResponse(
 			"backupwallet", wrapStringParameter(fileName));
-		// If no exception - obviously successful		
+		// If no exception - obviously successful
 		return response;
 	}
-	
-	
+
+
 	public synchronized String exportWallet(String fileName)
 		throws WalletCallException, IOException, InterruptedException
 	{
 		Log.info("Export wallet keys to location: " + fileName);
 		String response = this.executeCommandAndGetSingleStringResponse(
 			"z_exportwallet", wrapStringParameter(fileName));
-		// If no exception - obviously successful		
+		// If no exception - obviously successful
 		return response;
 	}
-	
-	
+
+
 	public synchronized void importWallet(String fileName)
 		throws WalletCallException, IOException, InterruptedException
 	{
 		Log.info("Import wallet keys from location: " + fileName);
 		String response = this.executeCommandAndGetSingleStringResponse(
 			"z_importwallet", wrapStringParameter(fileName));
-		// If no exception - obviously successful		
+		// If no exception - obviously successful
 	}
-	
-	
+
+
 	public synchronized String getTPrivateKey(String address)
 		throws WalletCallException, IOException, InterruptedException
 	{
 		String response = this.executeCommandAndGetSingleStringResponse(
 			"dumpprivkey", wrapStringParameter(address));
-		
+
 		return response.trim();
 	}
-	
-	
+
+
 	public synchronized String getZPrivateKey(String address)
 	    throws WalletCallException, IOException, InterruptedException
 	{
 		String response = this.executeCommandAndGetSingleStringResponse(
 			"z_exportkey", wrapStringParameter(address));
-		
+
 		return response.trim();
 	}
-	
-	
+
+
 	// Imports a private key - tries both possibilities T/Z
 	public synchronized String importPrivateKey(String key)
 		throws WalletCallException, IOException, InterruptedException
 	{
-		// First try a Z key
-		String[] params = new String[] 
-		{ 
-			this.zcashcli.getCanonicalPath(),
-			"-rpcclienttimeout=5000",
-			"z_importkey", 
-			wrapStringParameter(key) 
-		};
-		CommandExecutor caller = new CommandExecutor(params);
-    	String strResult = caller.execute();
-		
-		if (Util.stringIsEmpty(strResult) || 
-			(!strResult.trim().toLowerCase(Locale.ROOT).contains("error")))
-		{
-			return strResult == null ? "" : strResult.trim();
-		}
-		
-		// Obviously we have an error trying to import a Z key
-		if (strResult.trim().toLowerCase(Locale.ROOT).startsWith("error") &&
-			(strResult.indexOf("{") != -1))
-		{
-   		 	 // Expecting an error of a T address key
-   		 	 String jsonPart = strResult.substring(strResult.indexOf("{"));
-  		     JsonValue response = null;
-  			 try
-  			 {
-  			   	response = Json.parse(jsonPart);
-  		 	 } catch (ParseException pe)
-  			 {
-  			   	 throw new WalletCallException(jsonPart + "\n" + pe.getMessage() + "\n", pe);
-  			 }
+		String first_letter = key.substring(0, 1);
 
-  			 JsonObject respObject = response.asObject();
-  			 if ((respObject.getDouble("code", +123) == -1) &&
-  				 (respObject.getString("message", "ERR").indexOf("wrong network type") != -1))
-  			 {
-  				 // Obviously T address - do nothing here
-  			 } else
-  			 {
-  	    		 throw new WalletCallException("Unexpected response from wallet: " + strResult);
-  			 }
-		} else if (strResult.trim().toLowerCase(Locale.ROOT).startsWith("error code:"))
+		// Mainnet T keys start with "L" or "K" or "5"
+		// Testnet T keys start with "c" or "9"
+		// Mainnet and Testnet Z keys start with "S" or "s"
+
+		if (first_letter.equals("S") || first_letter.equals("s"))
 		{
- 			 JsonObject respObject = Util.getJsonErrorMessage(strResult);
- 			 if ((respObject.getDouble("code", +123) == -1) &&
- 				 (respObject.getString("message", "ERR").indexOf("wrong network type") != -1))
- 			 {
- 				 // Obviously T address - do nothing here
- 			 } else
- 			 {
- 	    		 throw new WalletCallException("Unexpected response from wallet: " + strResult);
- 			 }
-		} else
-		{
-			throw new WalletCallException("Unexpected response from wallet: " + strResult);
+			// Try a Z key
+			String[] params = new String[]
+			{
+				this.zcashcli.getCanonicalPath(),
+				"-rpcclienttimeout=5000",
+				"z_importkey",
+				wrapStringParameter(key)
+			};
+			CommandExecutor caller = new CommandExecutor(params);
+			String strResult = caller.execute();
+
+			if (Util.stringIsEmpty(strResult) ||
+				(!strResult.trim().toLowerCase(Locale.ROOT).contains("error")))
+			{
+				return strResult == null ? "" : strResult.trim();
+			}
+
+			// Obviously we have an error trying to import a Z key
+			if (strResult.trim().toLowerCase(Locale.ROOT).startsWith("error") &&
+				(strResult.indexOf("{") != -1))
+			{
+				 // Expecting an error of a T address key
+				 String jsonPart = strResult.substring(strResult.indexOf("{"));
+				 JsonValue response = null;
+				 try
+				 {
+					response = Json.parse(jsonPart);
+				 } catch (ParseException pe)
+				 {
+					 throw new WalletCallException(jsonPart + "\n" + pe.getMessage() + "\n", pe);
+				 }
+
+				 JsonObject respObject = response.asObject();
+				 if ((respObject.getDouble("code", +123) == -1) &&
+					 (respObject.getString("message", "ERR").indexOf("wrong network type") != -1))
+				 {
+					 // Obviously T address - do nothing here
+				 } else
+				 {
+					 throw new WalletCallException("Unexpected response from wallet: " + strResult);
+				 }
+			} else if (strResult.trim().toLowerCase(Locale.ROOT).startsWith("error code:"))
+			{
+				 JsonObject respObject = Util.getJsonErrorMessage(strResult);
+				 if ((respObject.getDouble("code", +123) == -1) &&
+					 (respObject.getString("message", "ERR").indexOf("wrong network type") != -1))
+				 {
+					 // Obviously T address - do nothing here
+				 } else
+				 {
+					 throw new WalletCallException("Unexpected response from wallet: " + strResult);
+				 }
+			} else
+			{
+				throw new WalletCallException("Unexpected response from wallet: " + strResult);
+			}
 		}
-		
-		// Second try a T key
-		strResult = this.executeCommandAndGetSingleStringResponse(
-			"-rpcclienttimeout=5000", "importprivkey", wrapStringParameter(key));
-		
-		if (Util.stringIsEmpty(strResult) || 
-			(!strResult.trim().toLowerCase(Locale.ROOT).contains("error")))
+		//include "9" and "c" for TestNet
+		else if (isTestnet == true ? first_letter.equals("9") || first_letter.equals("c") : first_letter.equals("5") || first_letter.equals("K") || first_letter.equals("L"))
 		{
-			return strResult == null ? "" : strResult.trim();
+			// try a T key
+			String strResult = this.executeCommandAndGetSingleStringResponse(
+				"-rpcclienttimeout=5000", "importprivkey", wrapStringParameter(key));
+
+			// obsolete as new deamons on success returns recovered address, not empty string
+			/*
+			if (Util.stringIsEmpty(strResult) ||
+				(!strResult.trim().toLowerCase(Locale.ROOT).contains("error")))
+			{
+				return strResult == null ? "" : strResult.trim();
+			}
+			*/
+			if (!strResult.trim().toLowerCase(Locale.ROOT).contains("error"))
+			{
+				return strResult == null ? "" : strResult.trim();
+			}
+			else throw new WalletCallException("Unexpected response from wallet: " + strResult); // Obviously an error
 		}
-		
-		// Obviously an error
-		throw new WalletCallException("Unexpected response from wallet: " + strResult);
+		else
+		{
+			throw new WalletCallException(isTestnet == true ? "TestNet private key should start with a '9' or 'c'" : "Single private key should start with L, K, or 5");
+		}
+		throw new WalletCallException("Error while importing private key");
 	}
-	
+
 
 	private JsonObject executeCommandAndGetJsonObject(String command1, String command2)
 		throws WalletCallException, IOException, InterruptedException
@@ -1275,8 +1104,8 @@ public class ZCashClientCaller
 	{
 		return this.executeCommandAndGetSingleStringResponse(command1, command2, null);
 	}
-	
-	
+
+
 	private String executeCommandAndGetSingleStringResponse(String command1, String command2, String command3)
 		throws WalletCallException, IOException, InterruptedException
 	{
@@ -1314,23 +1143,23 @@ public class ZCashClientCaller
 
 		return strResponse;
 	}
-	
-	
+
+
 	// Used to wrap string parameters on the command line - not doing so causes problems on Windows.
 	public static String wrapStringParameter(String param)
 	{
 		OS_TYPE os = OSUtil.getOSType();
-		
+
 		// Fix is made for Windows only
 		if (os == OS_TYPE.WINDOWS)
 		{
 			param = "\"" + param.replace("\"", "\\\"") + "\"";
 		}
-		
+
 		return param;
 	}
-	
-	
+
+
 	private void decomposeJSONValue(String name, JsonValue val, Map<String, String> map)
 	{
 		if (val.isObject())
@@ -1351,5 +1180,6 @@ public class ZCashClientCaller
 		{
 			map.put(name, val.toString());
 		}
-	}	
+	}
+
 }

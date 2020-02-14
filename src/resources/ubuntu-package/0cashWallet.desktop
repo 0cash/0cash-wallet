@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0.0
+Name=0cash Wallet
+Comment=0cash Desktop GUI Wallet (full node)
+GenericName=0cash Wallet
+Keywords=0cash;Crypto-currency;ZCH;
+Exec=0cash-wallet
+Terminal=false
+X-MultipleArgs=false
+Type=Application
+Icon=/usr/lib/0cash-wallet/0cash.png
+Categories=GNOME;Application;
+StartupNotify=true

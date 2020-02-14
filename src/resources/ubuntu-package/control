@@ -1,0 +1,8 @@
+Package: 0cash-wallet
+Version: 1.0.0
+Section: misc
+Priority: low
+Architecture: all
+Description: 0cash Wallet
+Maintainer: 0cashteam@gmail.com
+Depends: default-jdk, 0cash

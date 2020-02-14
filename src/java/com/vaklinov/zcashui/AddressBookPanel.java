@@ -55,9 +55,7 @@ public class AddressBookPanel extends JPanel {
             this.address = address;
         }
     }
-
-    private LanguageUtil langUtil;
-
+    
     private final List<AddressBookEntry> entries =
             new ArrayList<>();
 
@@ -70,28 +68,26 @@ public class AddressBookPanel extends JPanel {
     private final SendCashPanel sendCashPanel;
     private final JTabbedPane tabs;
     
-    private LabelStorage labelStorage;
-    
     private JPanel buildButtonsPanel() {
         JPanel panel = new JPanel();
         panel.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
         panel.setLayout(new FlowLayout(FlowLayout.CENTER, 3, 3));
         
-        JButton newContactButton = new JButton(langUtil.getString("panel.address.book.new.contact.button.text"));
+        JButton newContactButton = new JButton("New contact...");
         newContactButton.addActionListener(new NewContactActionListener());
         panel.add(newContactButton);
                 
-        sendCashButton = new JButton(langUtil.getString("panel.address.book.send.zen.button.text"));
+        sendCashButton = new JButton("Send ZCH");
         sendCashButton.addActionListener(new SendCashActionListener());
         sendCashButton.setEnabled(false);
         panel.add(sendCashButton);
         
-        copyToClipboardButton = new JButton(langUtil.getString("panel.address.book.copy.clipboard.button.text"));
+        copyToClipboardButton = new JButton("Copy address to clipboard");
         copyToClipboardButton.setEnabled(false);
         copyToClipboardButton.addActionListener(new CopyToClipboardActionListener());
         panel.add(copyToClipboardButton);
         
-        deleteContactButton = new JButton(langUtil.getString("panel.address.book.delete.contact.button.text"));
+        deleteContactButton = new JButton("Delete contact");
         deleteContactButton.setEnabled(false);
         deleteContactButton.addActionListener(new DeleteAddressActionListener());
         panel.add(deleteContactButton);
@@ -118,13 +114,9 @@ public class AddressBookPanel extends JPanel {
         return scrollPane;
     }
 
-    public AddressBookPanel(SendCashPanel sendCashPanel, JTabbedPane tabs, LabelStorage labelStorage) 
-    	throws IOException 
-    {
-    	this.labelStorage = labelStorage;
+    public AddressBookPanel(SendCashPanel sendCashPanel, JTabbedPane tabs) throws IOException {
         this.sendCashPanel = sendCashPanel;
         this.tabs = tabs;
-        langUtil = LanguageUtil.instance();
         BoxLayout boxLayout = new BoxLayout(this,BoxLayout.Y_AXIS);
         setLayout(boxLayout);
         add(buildTablePanel());
@@ -143,7 +135,7 @@ public class AddressBookPanel extends JPanel {
                 // format is address,name - this way name can contain commas ;-)
                 int addressEnd = line.indexOf(',');
                 if (addressEnd < 0)
-                    throw new IOException(langUtil.getString("panel.address.book.error.corrupted"));
+                    throw new IOException("Address Book is corrupted!");
                 String address = line.substring(0, addressEnd);
                 String name = line.substring(addressEnd + 1);
                 if (!names.add(name))
@@ -203,8 +195,8 @@ public class AddressBookPanel extends JPanel {
     private class NewContactActionListener implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             String name = (String) JOptionPane.showInputDialog(AddressBookPanel.this,
-                    langUtil.getString("panel.address.book.option.pane.new.contact.msg"),
-                    langUtil.getString("panel.address.book.option.pane.new.contact.title"),
+                    "Please enter the name of the contact:",
+                    "Add new contact step 1",
                     JOptionPane.PLAIN_MESSAGE,
                     null,
                     null,
@@ -216,8 +208,8 @@ public class AddressBookPanel extends JPanel {
             names.add(name);
             
             String address = (String) JOptionPane.showInputDialog(AddressBookPanel.this,
-                    langUtil.getString("panel.address.book.option.pane.new.contact.address", name),
-                    langUtil.getString("panel.address.book.option.pane.new.contact.address.title"),
+                    "Please enter the t-address or z-address of "+name,
+                    "Add new contact step 2",
                     JOptionPane.PLAIN_MESSAGE,
                     null,
                     null,
@@ -225,15 +217,6 @@ public class AddressBookPanel extends JPanel {
             if (address == null || "".equals(address))
                 return; // cancelled
             entries.add(new AddressBookEntry(name,address));
-            
-            // Add the address also to the label storage
-            try
-            {
-            	AddressBookPanel.this.labelStorage.setLabel(address, name);
-            } catch (IOException ioe)
-            {
-            	Log.error("Saving labels from within address book failed!", ioe);
-            }
             
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
@@ -254,7 +237,7 @@ public class AddressBookPanel extends JPanel {
                 return;
             AddressBookEntry entry = entries.get(row);
             sendCashPanel.prepareForSending(entry.address);
-            tabs.setSelectedIndex(3);
+            tabs.setSelectedIndex(2);
         }
     }
 
@@ -272,15 +255,15 @@ public class AddressBookPanel extends JPanel {
             
             JPopupMenu menu = new JPopupMenu();
             
-            JMenuItem sendCash = new JMenuItem(langUtil.getString("panel.address.book.menuitem.sendcash.text", entry.name));
+            JMenuItem sendCash = new JMenuItem("Send ZCH to "+entry.name);
             sendCash.addActionListener(new SendCashActionListener());
             menu.add(sendCash);
             
-            JMenuItem copyAddress = new JMenuItem(langUtil.getString("panel.address.book.menuitem.copy.address.text"));
+            JMenuItem copyAddress = new JMenuItem("Copy address to clipboard");
             copyAddress.addActionListener(new CopyToClipboardActionListener());
             menu.add(copyAddress);
             
-            JMenuItem deleteEntry = new JMenuItem(langUtil.getString("panel.address.book.menuitem.delete.entry.text", entry.name));
+            JMenuItem deleteEntry = new JMenuItem("Delete "+entry.name+" from contacts");
             deleteEntry.addActionListener(new DeleteAddressActionListener());
             menu.add(deleteEntry);
             
@@ -309,9 +292,9 @@ public class AddressBookPanel extends JPanel {
                 return;
             }
             String name = entries.get(row).name;
-            sendCashButton.setText(langUtil.getString("panel.address.book.button.sendcash.text", name));
+            sendCashButton.setText("Send ZCH to "+name);
             sendCashButton.setEnabled(true);
-            deleteContactButton.setText(langUtil.getString("panel.address.book.button.delete.contact.text", name));
+            deleteContactButton.setText("Delete contact "+name);
             deleteContactButton.setEnabled(true);
             copyToClipboardButton.setEnabled(true);
         }
@@ -333,8 +316,8 @@ public class AddressBookPanel extends JPanel {
         @Override
         public String getColumnName(int columnIndex) {
             switch(columnIndex) {
-            case 0 : return langUtil.getString("panel.address.book.table.name");
-            case 1 : return langUtil.getString("panel.address.book.table.address");
+            case 0 : return "name";
+            case 1 : return "address";
             default:
                 throw new IllegalArgumentException("invalid column "+columnIndex);
             }

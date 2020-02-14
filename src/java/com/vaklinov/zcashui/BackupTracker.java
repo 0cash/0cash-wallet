@@ -1,12 +1,12 @@
 /************************************************************************************************
- *   ____________ _   _  _____          _      _____ _    _ _______          __   _ _      _   
- *  |___  /  ____| \ | |/ ____|        | |    / ____| |  | |_   _\ \        / /  | | |    | |  
- *     / /| |__  |  \| | |     __ _ ___| |__ | |  __| |  | | | |  \ \  /\  / /_ _| | | ___| |_ 
- *    / / |  __| | . ` | |    / _` / __| '_ \| | |_ | |  | | | |   \ \/  \/ / _` | | |/ _ \ __|
- *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
- *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
- *                                       
- * Copyright (c) 2016-2018 The ZEN Developers
+ *  _________          _     ____          _           __        __    _ _      _   _   _ ___
+ * |__  / ___|__ _ ___| |__ / ___|_      _(_)_ __   __ \ \      / /_ _| | | ___| |_| | | |_ _|
+ *   / / |   / _` / __| '_ \\___ \ \ /\ / / | '_ \ / _` \ \ /\ / / _` | | |/ _ \ __| | | || |
+ *  / /| |__| (_| \__ \ | | |___) \ V  V /| | | | | (_| |\ V  V / (_| | | |  __/ |_| |_| || |
+ * /____\____\__,_|___/_| |_|____/ \_/\_/ |_|_| |_|\__, | \_/\_/ \__,_|_|_|\___|\__|\___/|___|
+ *                                                 |___/
+ *
+ * Copyright (c) 2017 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,8 @@ import javax.swing.JOptionPane;
 /**
  * Tracks important user actions and reminds the user to back up the wallet depending on
  * the content of the current user activity.
+ *
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class BackupTracker
 {
@@ -47,12 +49,10 @@ public class BackupTracker
 	
 	private JFrame parentFrame;
 
-	private LanguageUtil langUtil;
 	
 	public BackupTracker(JFrame parentFrame)
 	{
-		this.parentFrame = parentFrame;
-		this.langUtil = LanguageUtil.instance();
+		this.parentFrame = parentFrame;		
 	}
 	
 	
@@ -110,9 +110,13 @@ public class BackupTracker
 	{
 		JOptionPane.showMessageDialog(
 			this.parentFrame, 
-			langUtil.getString("backup.tracker.option.pane.text"),
-			langUtil.getString("backup.tracker.option.pane.title"),
-			JOptionPane.INFORMATION_MESSAGE);
+			"It appears that you have not backed up your wallet recently. It is recommended to\n" +
+			"back up the wallet after every 50 outgoing transactions and after creating a new\n" + 
+			"Z address. The wallet needs to be backed up to a safe location that can survive any\n" +
+			"data loss on the PC where the wallet is currenly located. Not backing up the wallet\n" +
+			"may result in loss of funds in case of data loss on the current PC. To backup the\n" +
+			"wallet, use menu option: Wallet >> Backup\n\n",
+			"Wallet backup is recommended...", JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	

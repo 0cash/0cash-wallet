@@ -1,0 +1,3 @@
+#!/bin/bash
+
+java -jar /usr/lib/0cash-wallet/0cashWallet.jar

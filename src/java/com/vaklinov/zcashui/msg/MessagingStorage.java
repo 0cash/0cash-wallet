@@ -6,7 +6,7 @@
  *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
  *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
  *                                                                                             
- * Copyright (c) 2016-2018 The ZEN Developers
+ * Copyright (c) 2017 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,6 +45,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 import java.util.Set;
 import java.util.UUID;
 
@@ -60,28 +61,29 @@ import com.vaklinov.zcashui.Util;
  * Stores the information about messages, identities etc in a dir structure. 
  * The standard directories are:
  * 
- * ~/.ZENCashSwingWalletUI/messaging - root dir
- * ~/.ZENCashSwingWalletUI/messaging/messagingoptions.json - options
- * ~/.ZENCashSwingWalletUI/messaging/ownidentity.json - own identity
- * ~/.ZENCashSwingWalletUI/messaging/ownidentity.json.bak.1 - own identity most recent backup
- * ~/.ZENCashSwingWalletUI/messaging/ownidentity.json.bak.9 - own identity oldest backup
- * ~/.ZENCashSwingWalletUI/messaging/contact_XXXX - a single contact named 0000 to 9999
- * ~/.ZENCashSwingWalletUI/messaging/contact_XXXX/identity.json - contact's identity
- * ~/.ZENCashSwingWalletUI/messaging/contact_XXXX/sent - sent messages dir
- * ~/.ZENCashSwingWalletUI/messaging/contact_XXXX/received - received messages dir
- * ~/.ZENCashSwingWalletUI/messaging/ignored_contacts - dir where ignored msg identities reside
- * ~/.ZENCashSwingWalletUI/messaging/ignored_contacts/UUID.json - single ignored identity.
+ * ~/.0cashWallet/messaging - root dir
+ * ~/.0cashWallet/messaging/messagingoptions.json - options
+ * ~/.0cashWallet/messaging/ownidentity.json - own identity
+ * ~/.0cashWallet/messaging/ownidentity.json.bak.1 - own identity most recent backup
+ * ~/.0cashWallet/messaging/ownidentity.json.bak.9 - own identity oldest backup
+ * ~/.0cashWallet/messaging/contact_XXXX - a single contact named 0000 to 9999
+ * ~/.0cashWallet/messaging/contact_XXXX/identity.json - contact's identity
+ * ~/.0cashWallet/messaging/contact_XXXX/sent - sent messages dir
+ * ~/.0cashWallet/messaging/contact_XXXX/received - received messages dir
+ * ~/.0cashWallet/messaging/ignored_contacts - dir where ignored msg identities reside
+ * ~/.0cashWallet/messaging/ignored_contacts/UUID.json - single ignored identity.
  * 
  * The sent/received directories have a substructure of type:
  * sent/XXXX/message_xxx.json - where XXXX is between 0000 and 9999, xxx is between 000 and 999 
+ *
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class MessagingStorage
 {
 	private File rootDir;
 	private File ignoredContactsDir;
-	
-	private List<SingleContactStorage> contactsList;
-	
+	private List<SingleContactStorage> contactsList ;
+
 	private List<MessagingIdentity> ignoredContacts;
 	
 	MessagingIdentity cachedOwnIdentity;
@@ -102,10 +104,10 @@ public class MessagingStorage
 			}
 		}
 		
-		this.ignoredContactsDir = new File(this.rootDir, "ignored_contacts");
-		
-		if (!ignoredContactsDir.exists())
-		{
+		this.ignoredContactsDir = new File(this. rootDir, "ignored_contacts") ;
+
+			if (!ignoredContactsDir.exists())
+			{
 			if (!ignoredContactsDir.mkdirs())
 			{
 				throw new IOException("Could not create directory: " + ignoredContactsDir.getAbsolutePath());
@@ -113,33 +115,33 @@ public class MessagingStorage
 		}
 		
 		this.reloadContactListFromStorage();
-		
-		this.reloadIgnoredContactsFromStorage();
+
+			this.reloadIgnoredContactsFromStorage();
 	}
-	
-	
+
+
 	public void addIgnoredContact(MessagingIdentity contact)
 		throws IOException
 	{
 		String fileName = UUID.randomUUID().toString() + ".json";
-		File contactFile = new File(this.ignoredContactsDir, fileName);
-		
+		File contactFile =new File(this.ignoredContactsDir, fileName);
+
 		contact.writeToFile(contactFile);
-		
+
 		this.reloadIgnoredContactsFromStorage(); // Acceptable since it will be rare
 	}
-	
-	
-	// If a message is from an ignored contact - returns it, else null
+
+
+	// If a message is from an igonred contact - returns it, else null
 	public MessagingIdentity getIgnoredContactForMessage(Message msg)
 	{
 		MessagingIdentity contact = null;
-		
+
 		for (MessagingIdentity id : this.ignoredContacts)
 		{
 			if (id.isAnonymous())
 			{
-				if (msg.isAnonymous() && (!Util.stringIsEmpty(id.getThreadID())) && 
+				if (msg.isAnonymous() && (!Util.stringIsEmpty(id.getThreadID())) &&
 					id.getThreadID().equals(msg.getThreadID()))
 				{
 					contact = id;
@@ -147,15 +149,15 @@ public class MessagingStorage
 				}
 			} else
 			{
-				if ((!msg.isAnonymous()) && (!Util.stringIsEmpty(id.getSenderidaddress())) && 
+				if ((!msg.isAnonymous()) && (!Util.stringIsEmpty(id.getSenderidaddress())) &&
 					id.getSenderidaddress().equals(msg.getFrom()))
 				{
 					contact = id;
-					break;					
+					break;
 				}
 			}
 		}
-		
+
 		return contact;
 	}
 	
@@ -272,33 +274,33 @@ public class MessagingStorage
 			}
 		}			
 	}
-	
-	
+
+
 	public void updateGroupContactIdentityForSendReceiveAddress(String sendReceiveAddress, MessagingIdentity newID)
 		throws IOException
 	{
 		for (SingleContactStorage contact : this.contactsList)
 		{
 			MessagingIdentity tempID = contact.getIdentity();
-			
+
 			if ((tempID.isGroup()) && tempID.getSendreceiveaddress().equals(sendReceiveAddress))
 			{
 				tempID.copyFromJSONObject(newID.toJSONObject(false));
 				contact.updateIdentity(tempID);
 			}
-		}			
+		}
 	}
-	
-	
+
+
 	/**
 	 * Checks if a particular sender's ID is ignored. This makes sense only if the
 	 * current contact is a group. The ID may be an anonymous sender UUID or a
 	 * normal from address.
-	 * 
+	 *
 	 * @param senderID
 	 * @param groupID
 	 * @return true if a particular sender's ID is ignored.
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	public boolean isSenderIdentityIgnoredForGroup(String senderID, MessagingIdentity groupID)
@@ -307,22 +309,22 @@ public class MessagingStorage
 		for (SingleContactStorage contact : this.contactsList)
 		{
 			MessagingIdentity tempID = contact.getIdentity();
-			
+
 			if ((tempID.isGroup()) && tempID.isIdenticalTo(groupID))
 			{
 				return contact.isGroupSenderIDIgnored(senderID);
 			}
-		}			
+		}
 
 		return false;
 	}
-	
-	
+
+
 	/**
 	 * Adds a new ignored sender ID. This makes sense only if the
 	 * current contact is a group. The ID may be an anonymous sender UUID or a
 	 * normal from address.
-	 * 
+	 *
 	 * @param senderID to add
 	 */
 	public void addIgnoredSenderIdentityForGroup(String senderID, MessagingIdentity groupID)
@@ -331,13 +333,13 @@ public class MessagingStorage
 		for (SingleContactStorage contact : this.contactsList)
 		{
 			MessagingIdentity tempID = contact.getIdentity();
-			
+
 			if ((tempID.isGroup()) && tempID.isIdenticalTo(groupID))
 			{
 				contact.addGroupIgnoredSenderID(senderID);
 				return;
 			}
-		}	
+		}
 	}
 
 		
@@ -356,7 +358,7 @@ public class MessagingStorage
 		int contactDirIndex = contactDirs.length;
 		String contactDirName;
 		
-		// We need to make sure the dir does not exist. If it does maybe users were removed before etc
+		// We need to make sure the dir does not exist.. if it does maybe users were removed before etc
 		// so we increment!
 		do
 		{
@@ -513,9 +515,9 @@ public class MessagingStorage
 
 	/**
 	 * Returns all known messages for a certain contact in ascending date order. 
-	 * If identity not found etc. throws an exception
+	 * If identity not found etc. thorws an exception
 	 * 
-	 * @param contact
+	 * @param conact
 	 * 
 	 * @return all known messages for a certain contact in ascending date order.
 	 */
@@ -609,60 +611,60 @@ public class MessagingStorage
 			}
 		}
 	}
-	
-	
+
+
 	private void reloadContactListFromStorage()
 		throws IOException
 	{
 			this.contactsList = new ArrayList<SingleContactStorage>();
-			
-			File contactDirs[] = this.rootDir.listFiles(new FileFilter() 
-			{	
+
+			File contactDirs[] = this.rootDir.listFiles(new FileFilter()
+			{
 				@Override
-				public boolean accept(File pathname) 
+				public boolean accept(File pathname)
 				{
 					return pathname.isDirectory() && pathname.getName().matches("contact_[0-9]{4}");
 				}
 			});
-			
+
 			for (File dir : contactDirs)
 			{
 				this.contactsList.add(new SingleContactStorage(dir));
 		    }
 	}
-		
-		
+
+
 	private void reloadIgnoredContactsFromStorage()
 		throws IOException
 	{
 			this.ignoredContacts = new ArrayList<MessagingIdentity>();
-			
-			File ignoredContacts[] = this.ignoredContactsDir.listFiles(new FileFilter() 
-			{	
+
+			File ignoredContacts[] = this.ignoredContactsDir.listFiles(new FileFilter()
+			{
 				@Override
-				public boolean accept(File pathname) 
+				public boolean accept(File pathname)
 				{
 					return pathname.isFile() && pathname.getName().endsWith(".json");
 				}
 			});
-			
+
 			for (File contactFile : ignoredContacts)
 			{
 				this.ignoredContacts.add(new MessagingIdentity(contactFile));
 			}
 	}
-	
-	
+
+
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	
 	// Stores the details of a single contact
 	// Root dir may be like:
-	// ~/.ZENCashSwingWalletUI/messaging/contact_XXXX
+	// ~/.0cashWallet/messaging/contact_XXXX
 	static class SingleContactStorage
 	{
 		final String IGNORED_GROUP_IDS = "ignored_group_ids.json";
-		
+
 		private File rootDir;
 		
 		private SentOrReceivedMessagesStore sentMessages;
@@ -671,14 +673,14 @@ public class MessagingStorage
 		private MessagingIdentity cachedIdentity;
 		
 		private Set<String> cachedIgnoredGroupSenderIDs;
-		
-		
+
+
 		public SingleContactStorage(File rootDir)
 			throws IOException
 		{
 			this.cachedIdentity = null;
 			this.cachedIgnoredGroupSenderIDs = null;
-			
+
 			this.rootDir = rootDir;
 			
 			if (!rootDir.exists())
@@ -728,9 +730,9 @@ public class MessagingStorage
 		 * Checks if a particular sender's ID is ignored. This makes sense only if the
 		 * current contact is a group. The ID may be an anonymous sender UUID or a
 		 * normal from address.
-		 * 
+		 *
 		 * @param senderID
-		 * 
+		 *
 		 * @return true if a particular sender's ID is ignored
 		 */
 		public boolean isGroupSenderIDIgnored(String senderID)
@@ -740,32 +742,32 @@ public class MessagingStorage
 			boolean ignored = this.cachedIgnoredGroupSenderIDs.contains(senderID);
 			return ignored;
 		}
-		
+
 
 		/**
 		 * Adds a new ignored sender ID. This makes sense only if the
 		 * current contact is a group. The ID may be an anonymous sender UUID or a
 		 * normal from address.
-		 * 
+		 *
 		 * @param senderID to add
 		 */
 		public void addGroupIgnoredSenderID(String senderID)
 			throws IOException
 		{
 			this.preloadCachedIgnoredGroupSenderIDs();
-			
-			File ignoredIDsFile = new File(rootDir, IGNORED_GROUP_IDS);	
-			
+
+			File ignoredIDsFile = new File(rootDir, IGNORED_GROUP_IDS);
+
 			Util.renameFileForMultiVersionBackup(rootDir, IGNORED_GROUP_IDS);
-			
+
 			this.cachedIgnoredGroupSenderIDs.add(senderID);
-			
+
 			JsonArray ar = new JsonArray();
 			for (String id : this.cachedIgnoredGroupSenderIDs)
 			{
 				ar.add(id);
 			}
-			
+
 			OutputStream os = null;
 			try
 			{
@@ -773,7 +775,7 @@ public class MessagingStorage
 				OutputStreamWriter osw = new OutputStreamWriter(os, "UTF-8");
 				ar.writeTo(osw, WriterConfig.PRETTY_PRINT);
 				osw.flush();
-			} finally 
+			} finally
 			{
 				if (os != null)
 				{
@@ -781,43 +783,43 @@ public class MessagingStorage
 				}
 			}
 		}
-		
-		
+
+
 		private void preloadCachedIgnoredGroupSenderIDs()
 			throws IOException
 		{
 			if (this.cachedIgnoredGroupSenderIDs == null)
 			{
 				this.cachedIgnoredGroupSenderIDs = new HashSet<String>();
-				
-				File ignoredIDsFile = new File(rootDir, IGNORED_GROUP_IDS);	
-				
+
+				File ignoredIDsFile = new File(rootDir, IGNORED_GROUP_IDS);
+
 				if (!ignoredIDsFile.exists())
 				{
 					return;
 				}
-				
+
 				InputStream is = null;
 				try
 				{
 					is = new BufferedInputStream(new FileInputStream(ignoredIDsFile));
 					InputStreamReader isr = new InputStreamReader(is, "UTF-8");
 					JsonArray ar = Json.parse(isr).asArray(); // TODO: repackage to checked exception
-					
+
 					for (int i = 0; i < ar.size(); i++)
 					{
 						String val = ar.get(i).toString();
-						
+
 						if (val.startsWith("\"")) // Strip the string of the quotes
 						{
 							val = val.substring(1);
 						}
-						
+
 						if (val.endsWith("\""))
 						{
 							val = val.substring(0, val.length() - 1);
 						}
-						
+
 						this.cachedIgnoredGroupSenderIDs.add(val);
 					}
 				} finally
@@ -829,8 +831,8 @@ public class MessagingStorage
 				}
 			}
 		}
-		
-		
+
+
 		public List<Message> getAllSentMessages()
 		    throws IOException
 		{
@@ -858,7 +860,7 @@ public class MessagingStorage
 			this.receivedMessages.writeNewMessage(msg);
 		}
 
-		
+
 		public File getRootDir()
 		{
 			return this.rootDir;
@@ -868,7 +870,7 @@ public class MessagingStorage
 	
 	// Stores messages of one type - sent/received for one contact
 	// Root directory may be like:
-	// ~/.ZENCashSwingWalletUI/messaging/contact_XXXX/sent
+	// ~/.0cashWallet/messaging/contact_XXXX/sent
 	static class SentOrReceivedMessagesStore
 	{
 		private File rootDir;

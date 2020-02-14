@@ -6,7 +6,7 @@
  *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
  *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
  *                                                                                             
- * Copyright (c) 2016-2018 The ZEN Developers
+ * Copyright (c) 2017 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,6 @@
  * THE SOFTWARE.
  **********************************************************************************/
 package com.vaklinov.zcashui.msg;
-
-import com.vaklinov.zcashui.LanguageUtil;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -51,6 +49,8 @@ import javax.swing.border.EtchedBorder;
 
 /**
  * Dialog showing the information about a user's identity
+ *
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class IdentityInfoDialog
 	extends JDialog
@@ -62,7 +62,6 @@ public class IdentityInfoDialog
 	
 	protected JPanel buttonPanel;
 	
-
 	protected JTextField nicknameTextField;
 	protected JTextArea sendreceiveaddressTextField;
 	protected JTextField senderidaddressTextField;
@@ -77,11 +76,10 @@ public class IdentityInfoDialog
 	
 	public IdentityInfoDialog(JFrame parentFrame, MessagingIdentity identity)
 	{
-		LanguageUtil langUtil = LanguageUtil.instance();
 		this.parentFrame = parentFrame;
 		this.identity    = identity;
 		
-		this.setTitle(langUtil.getString("dialog.identity.info.title",  identity.getDiplayString()));
+		this.setTitle("Contact details for: " + identity.getDiplayString());
 		this.setModal(true);
 		this.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 			
@@ -99,9 +97,9 @@ public class IdentityInfoDialog
 		JPanel detailsPanel = new JPanel();
 		detailsPanel.setLayout(new BoxLayout(detailsPanel, BoxLayout.Y_AXIS));
 		
-		addFormField(detailsPanel, "Nick name:",  nicknameTextField = new JTextField(40));
+		addFormField(detailsPanel, "Nick name*:",  nicknameTextField = new JTextField(40));
 		addFormField(detailsPanel, "First name:", firstnameTextField = new JTextField(40));
-		addFormField(detailsPanel, "Middle name:", middlenameTextField = new JTextField(40));
+		addFormField(detailsPanel, "Midle name:", middlenameTextField = new JTextField(40));
 		addFormField(detailsPanel, "Surname:",    surnameTextField = new JTextField(40));
 		
 		addFormField(detailsPanel, "E-mail:",         emailTextField = new JTextField(40));
@@ -168,7 +166,7 @@ public class IdentityInfoDialog
 		JPanel tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
 		JLabel tempLabel = new JLabel(name, JLabel.RIGHT);
 		// TODO: hard sizing of labels may not scale!
-		final int width = new JLabel("Sender identification T address:").getPreferredSize().width + 10;
+		final int width = new JLabel("Sender identiication T address:").getPreferredSize().width + 10;
 		tempLabel.setPreferredSize(new Dimension(width, tempLabel.getPreferredSize().height));
 		tempPanel.add(tempLabel);
 		tempPanel.add(field);

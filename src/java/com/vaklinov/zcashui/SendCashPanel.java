@@ -1,12 +1,12 @@
 /************************************************************************************************
- *   ____________ _   _  _____          _      _____ _    _ _______          __   _ _      _   
- *  |___  /  ____| \ | |/ ____|        | |    / ____| |  | |_   _\ \        / /  | | |    | |  
- *     / /| |__  |  \| | |     __ _ ___| |__ | |  __| |  | | | |  \ \  /\  / /_ _| | | ___| |_ 
- *    / / |  __| | . ` | |    / _` / __| '_ \| | |_ | |  | | | |   \ \/  \/ / _` | | |/ _ \ __|
- *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
- *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
- *                                       
- * Copyright (c) 2016-2018 The ZEN Developers
+ *  _________          _     ____          _           __        __    _ _      _   _   _ ___
+ * |__  / ___|__ _ ___| |__ / ___|_      _(_)_ __   __ \ \      / /_ _| | | ___| |_| | | |_ _|
+ *   / / |   / _` / __| '_ \\___ \ \ /\ / / | '_ \ / _` \ \ /\ / / _` | | |/ _ \ __| | | || |
+ *  / /| |__| (_| \__ \ | | |___) \ V  V /| | | | | (_| |\ V  V / (_| | | |  __/ |_| |_| || |
+ * /____\____\__,_|___/_| |_|____/ \_/\_/ |_|_| |_|\__, | \_/\_/ \__,_|_|_|\___|\__|\___/|___|
+ *                                                 |___/
+ *
+ * Copyright (c) 2016 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,6 @@ package com.vaklinov.zcashui;
 
 
 import java.awt.BorderLayout;
-import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -43,22 +42,21 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.File;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
+import java.math.RoundingMode;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -77,6 +75,8 @@ import com.vaklinov.zcashui.ZCashClientCaller.WalletCallException;
 
 /**
  * Provides the functionality for sending cash
+ *
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class SendCashPanel
 	extends WalletTabPanel
@@ -85,49 +85,42 @@ public class SendCashPanel
 	private StatusUpdateErrorReporter errorReporter;
 	private ZCashInstallationObserver installationObserver;
 	private BackupTracker             backupTracker;
-	private LabelStorage labelStorage;
-	
-	private DropdownComboBox  balanceAddressCombo     = null;
+
+	private JComboBox  balanceAddressCombo     = null;
 	private JPanel     comboBoxParentPanel     = null;
 	private String[][] lastAddressBalanceData  = null;
 	private String[]   comboBoxItems           = null;
 	private DataGatheringThread<String[][]> addressBalanceGatheringThread = null;
-	
+
 	private JTextField destinationAddressField = null;
 	private JTextField destinationAmountField  = null;
-	private JTextField destinationMemoField    = null;	
-	private JTextField transactionFeeField     = null;	
-	
-	private JCheckBox  sendChangeBackToSourceAddress = null;
-	
-	private JButton    sendButton              = null;
-	
-	private JPanel       operationStatusPanel        = null;
-	private JLabel       operationStatusLabel        = null;
-	private JProgressBar operationStatusProhgressBar = null;
-	private Timer        operationStatusTimer        = null;
-	private String       operationStatusID           = null;
-	private int          operationStatusCounter      = 0;
-	private LanguageUtil langUtil;
+	private JTextField destinationMemoField    = null;
+	private JTextField transactionFeeField     = null;
 
-	
-	public SendCashPanel(ZCashClientCaller clientCaller,  
+	private JButton    sendButton              = null;
+
+	private JPanel       operationStatusPanel        						= null;
+	private JLabel       operationStatusLabel        						= null;
+	private JProgressBar operationStatusProhgressBar 						= null;
+	private Timer        operationStatusTimer        						= null;
+	private String       operationStatusID           						= null;
+	private int          operationStatusCounter      						= 0;
+
+
+	public SendCashPanel(ZCashClientCaller clientCaller,
 			             StatusUpdateErrorReporter errorReporter,
 			             ZCashInstallationObserver installationObserver,
-			             BackupTracker backupTracker,
-			             LabelStorage labelStorage)
+			             BackupTracker backupTracker)
 		throws IOException, InterruptedException, WalletCallException
 	{
-		langUtil = LanguageUtil.instance();
 		this.timers = new ArrayList<Timer>();
 		this.threads = new ArrayList<DataGatheringThread<?>>();
-		
+
 		this.clientCaller = clientCaller;
 		this.errorReporter = errorReporter;
 		this.installationObserver = installationObserver;
 		this.backupTracker = backupTracker;
-		this.labelStorage = labelStorage;
-		
+
 		// Build content
 		this.setBorder(BorderFactory.createEmptyBorder(3, 3, 3, 3));
 		this.setLayout(new BorderLayout());
@@ -135,44 +128,50 @@ public class SendCashPanel
 		this.add(sendCashPanel, BorderLayout.NORTH);
 		sendCashPanel.setLayout(new BoxLayout(sendCashPanel, BoxLayout.Y_AXIS));
 		sendCashPanel.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
-		
+
 		JPanel tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-		tempPanel.add(new JLabel(langUtil.getString("send.cash.panel.label")));
-		tempPanel.add(new JLabel(langUtil.getString("send.cash.panel.label.info")));
+		tempPanel.add(new JLabel("Send cash from:       "));
+		tempPanel.add(new JLabel(
+			"<html><span style=\"font-size:0.8em;\">" +
+			"* Only addresses with a confirmed balance are shown as sources for sending!" +
+		    "</span>  "));
 		sendCashPanel.add(tempPanel);
 
-		balanceAddressCombo = new DropdownComboBox<>(new String[] { "" });
+		balanceAddressCombo = new JComboBox<>(new String[] { "" });
 		comboBoxParentPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
 		comboBoxParentPanel.add(balanceAddressCombo);
 		sendCashPanel.add(comboBoxParentPanel);
-		
+
 		JLabel dividerLabel = new JLabel("   ");
 		dividerLabel.setFont(new Font("Helvetica", Font.PLAIN, 3));
 		sendCashPanel.add(dividerLabel);
 
 		tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-		tempPanel.add(new JLabel(langUtil.getString("send.cash.panel.label.destination.address")));
+		tempPanel.add(new JLabel("Destination address:"));
 		sendCashPanel.add(tempPanel);
-		
+
 		destinationAddressField = new JTextField(73);
 		tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        tempPanel.add(destinationAddressField);
+  tempPanel.add(destinationAddressField);
 		sendCashPanel.add(tempPanel);
-				
+
 		dividerLabel = new JLabel("   ");
 		dividerLabel.setFont(new Font("Helvetica", Font.PLAIN, 3));
 		sendCashPanel.add(dividerLabel);
 
 		tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-		tempPanel.add(new JLabel(langUtil.getString("send.cash.panel.label.memo")));
-		tempPanel.add(new JLabel(langUtil.getString("send.cash.panel.label.memo.info")));
+		tempPanel.add(new JLabel("Memo (optional):     "));
+		tempPanel.add(new JLabel(
+				"<html><span style=\"font-size:0.8em;\">" +
+				"* Memo may be specified only if the destination is a Z (Private) address!" +
+			    "</span>  "));
 		sendCashPanel.add(tempPanel);
-		
+
 		destinationMemoField = new JTextField(73);
 		tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         tempPanel.add(destinationMemoField);
-		sendCashPanel.add(tempPanel);		
-		
+		sendCashPanel.add(tempPanel);
+
 		dividerLabel = new JLabel("   ");
 		dividerLabel.setFont(new Font("Helvetica", Font.PLAIN, 3));
 		sendCashPanel.add(dividerLabel);
@@ -180,84 +179,83 @@ public class SendCashPanel
 		// Construct a more complex panel for the amount and transaction fee
 		JPanel amountAndFeePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
 		JPanel amountPanel = new JPanel(new BorderLayout());
-		amountPanel.add(new JLabel(langUtil.getString("send.cash.panel.label.amount")), BorderLayout.NORTH);
+		amountPanel.add(new JLabel("Amount to send:"), BorderLayout.NORTH);
 		tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-		tempPanel.add(destinationAmountField = new JTextField(13));
+  tempPanel.add(destinationAmountField = new JTextField(13));
 		destinationAmountField.setHorizontalAlignment(SwingConstants.RIGHT);
-		tempPanel.add(new JLabel(" ZEN    "));
+		tempPanel.add(new JLabel(" ZCH    "));
 		amountPanel.add(tempPanel, BorderLayout.SOUTH);
 
 		JPanel feePanel = new JPanel(new BorderLayout());
-		feePanel.add(new JLabel(langUtil.getString("send.cash.panel.label.fee")), BorderLayout.NORTH);
+		feePanel.add(new JLabel("Transaction fee:"), BorderLayout.NORTH);
 		tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
 		tempPanel.add(transactionFeeField = new JTextField(13));
 		transactionFeeField.setText("0.0001"); // Default value
-		transactionFeeField.setHorizontalAlignment(SwingConstants.RIGHT);		
-		tempPanel.add(new JLabel(" ZEN"));
+		transactionFeeField.setHorizontalAlignment(SwingConstants.RIGHT);
+		tempPanel.add(new JLabel(" ZCH"));
 		feePanel.add(tempPanel, BorderLayout.SOUTH);
-		
-		JPanel sendChangeBoxPanel = new JPanel(new BorderLayout());
-		sendChangeBoxPanel.add(new JLabel(" "), BorderLayout.NORTH);
-		tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-		tempPanel.add(new JLabel("      "));
-		tempPanel.add(sendChangeBackToSourceAddress = new JCheckBox(langUtil.getString("send.cash.panel.checkbox.send.change.back")));
-		sendChangeBoxPanel.add(tempPanel, BorderLayout.SOUTH);
 
 		amountAndFeePanel.add(amountPanel);
 		amountAndFeePanel.add(feePanel);
-		amountAndFeePanel.add(sendChangeBoxPanel);
-		sendCashPanel.add(amountAndFeePanel);		
-		
+		sendCashPanel.add(amountAndFeePanel);
+
 		dividerLabel = new JLabel("   ");
 		dividerLabel.setFont(new Font("Helvetica", Font.PLAIN, 3));
 		sendCashPanel.add(dividerLabel);
 
 		tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-		tempPanel.add(sendButton = new JButton(langUtil.getString("send.cash.panel.button.send") + "   \u27A4\u27A4\u27A4"));
+		tempPanel.add(sendButton = new JButton("Send   \u27A4\u27A4\u27A4"));
 		sendCashPanel.add(tempPanel);
 
 		dividerLabel = new JLabel("   ");
 		dividerLabel.setFont(new Font("Helvetica", Font.PLAIN, 5));
 		sendCashPanel.add(dividerLabel);
-		
+
 		JPanel warningPanel = new JPanel();
 		warningPanel.setLayout(new BorderLayout(7, 3));
-		JLabel warningL = new JLabel(langUtil.getString("send.cash.panel.label.send.warning"));
+		JLabel warningL = new JLabel(
+				"<html><span style=\"font-size:0.8em;\">" +
+				" * When sending cash from a T (Transparent) address, the remaining unspent balance is sent to another " +
+				"auto-generated T address. When sending from a Z (Private) address, the remaining unspent balance remains with " +
+				"the Z address. In both cases the original sending address cannot be used for sending again until the " +
+				"transaction is confirmed. The address is temporarily removed from the list! Freshly mined coins may only "+
+				"be sent to a Z (Private) address." +
+			    "</span>");
 		warningPanel.add(warningL, BorderLayout.NORTH);
 		sendCashPanel.add(warningPanel);
-		
+
 		dividerLabel = new JLabel("   ");
 		dividerLabel.setFont(new Font("Helvetica", Font.PLAIN, 15));
 		sendCashPanel.add(dividerLabel);
-		
+
 		// Build the operation status panel
 		operationStatusPanel = new JPanel();
 		sendCashPanel.add(operationStatusPanel);
 		operationStatusPanel.setLayout(new BoxLayout(operationStatusPanel, BoxLayout.Y_AXIS));
-		
+
 		tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-		tempPanel.add(new JLabel(langUtil.getString("send.cash.panel.label.last.operation.status")));
+		tempPanel.add(new JLabel("Last operation status: "));
         tempPanel.add(operationStatusLabel = new JLabel("N/A"));
-        operationStatusPanel.add(tempPanel);		
-		
+        operationStatusPanel.add(tempPanel);
+
 		dividerLabel = new JLabel("   ");
 		dividerLabel.setFont(new Font("Helvetica", Font.PLAIN, 6));
 		operationStatusPanel.add(dividerLabel);
 
 		tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-		tempPanel.add(new JLabel(langUtil.getString("send.cash.panel.label.last.operation.progress")));
+		tempPanel.add(new JLabel("Progress: "));
         tempPanel.add(operationStatusProhgressBar = new JProgressBar(0, 200));
         operationStatusProhgressBar.setPreferredSize(new Dimension(250, 17));
-        operationStatusPanel.add(tempPanel);		
-        
+        operationStatusPanel.add(tempPanel);
+
 		dividerLabel = new JLabel("   ");
 		dividerLabel.setFont(new Font("Helvetica", Font.PLAIN, 13));
 		operationStatusPanel.add(dividerLabel);
-		
+
 		// Wire the buttons
-		sendButton.addActionListener(new ActionListener() 
-		{	
-			public void actionPerformed(ActionEvent e) 
+		sendButton.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
 			{
 				try
 			    {
@@ -265,25 +263,27 @@ public class SendCashPanel
 				} catch (Exception ex)
 				{
 					Log.error("Unexpected error: ", ex);
-					
+
 					String errMessage = "";
 					if (ex instanceof WalletCallException)
 					{
 						errMessage = ((WalletCallException)ex).getMessage().replace(",", ",\n");
 					}
-					
+
 					JOptionPane.showMessageDialog(
-							SendCashPanel.this.getRootPane().getParent(), 
-							langUtil.getString("send.cash.panel.option.pane.error.text",errMessage),
-							langUtil.getString("send.cash.panel.option.pane.error.title"),
-							JOptionPane.ERROR_MESSAGE);
+							SendCashPanel.this.getRootPane().getParent(),
+							"An unexpected error occurred when sending cash!\n" +
+							"Please ensure that the 0cash daemon is running and\n" +
+							"parameters are correct. You may try again later...\n" +
+							errMessage,
+							"Error in sending cash", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		});
 
 		// Update the balances via timer and data gathering thread
 		this.addressBalanceGatheringThread = new DataGatheringThread<String[][]>(
-			new DataGatheringThread.DataGatherer<String[][]>() 
+			new DataGatheringThread.DataGatherer<String[][]>()
 			{
 				public String[][] gatherData()
 					throws Exception
@@ -292,20 +292,21 @@ public class SendCashPanel
 					String[][] data = SendCashPanel.this.getAddressPositiveBalanceDataFromWallet();
 					long end = System.currentTimeMillis();
 					Log.info("Gathering of address/balance table data done in " + (end - start) + "ms." );
-					
+
 					return data;
 				}
-			}, 
+			},
 			this.errorReporter, 10000, true);
 		this.threads.add(addressBalanceGatheringThread);
-		
-		ActionListener alBalancesUpdater = new ActionListener() 
+
+		ActionListener alBalancesUpdater = new ActionListener()
 		{
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
 				try
 				{
+					// TODO: if the user has opened the combo box - this closes it (maybe fix)
 					SendCashPanel.this.updateWalletAddressPositiveBalanceComboBox();
 				} catch (Exception ex)
 				{
@@ -318,15 +319,15 @@ public class SendCashPanel
 		timerBalancesUpdater.setInitialDelay(3000);
 		timerBalancesUpdater.start();
 		this.timers.add(timerBalancesUpdater);
-		
+
 		// Add a popup menu to the destination address field - for convenience
-		JMenuItem paste = new JMenuItem(langUtil.getString("send.cash.panel.menu.item.paste"));
+		JMenuItem paste = new JMenuItem("Paste address");
 		final JPopupMenu popupMenu = new JPopupMenu();
         popupMenu.add(paste);
-        paste.addActionListener(new ActionListener() 
-        {	
+        paste.addActionListener(new ActionListener()
+        {
 			@Override
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(ActionEvent e)
 			{
 				try
 				{
@@ -345,7 +346,7 @@ public class SendCashPanel
 				}
 			}
 		});
-        
+
         this.destinationAddressField.addMouseListener(new MouseAdapter()
         {
         	public void mousePressed(MouseEvent e)
@@ -356,7 +357,7 @@ public class SendCashPanel
                     e.consume();
                 };
         	}
-        	
+
             public void mouseReleased(MouseEvent e)
             {
             	if ((!e.isConsumed()) && e.isPopupTrigger())
@@ -365,306 +366,159 @@ public class SendCashPanel
             	}
             }
         });
-		
+
 	}
-	
-	
+
+
 	private void sendCash()
 		throws WalletCallException, IOException, InterruptedException
 	{
-		if ((balanceAddressCombo.getItemCount() <= 0) ||
-			(this.lastAddressBalanceData == null)     || 
-			(this.lastAddressBalanceData.length <= 0))
+		if (balanceAddressCombo.getItemCount() <= 0)
 		{
 			JOptionPane.showMessageDialog(
-				SendCashPanel.this.getRootPane().getParent(), 
-				langUtil.getString("send.cash.panel.option.pane.no.funds.text"),
-				langUtil.getString("send.cash.panel.option.pane.no.funds.title"),
-				JOptionPane.ERROR_MESSAGE);
+				SendCashPanel.this.getRootPane().getParent(),
+				"There are no addresses with a positive balance to send\n" +
+				"cash from!",
+				"No funds available", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-		
+
 		if (this.balanceAddressCombo.getSelectedIndex() < 0)
 		{
 			JOptionPane.showMessageDialog(
 				SendCashPanel.this.getRootPane().getParent(),
-					langUtil.getString("send.cash.panel.option.pane.select.source.text"),
-					langUtil.getString("send.cash.panel.option.pane.select.source.title"),
-					JOptionPane.ERROR_MESSAGE);
+				"Please select a source address with a current positive\n" +
+				"balance to send cash from!",
+				"Please select source address", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-		
+
 		final String sourceAddress = this.lastAddressBalanceData[this.balanceAddressCombo.getSelectedIndex()][1];
 		final String destinationAddress = this.destinationAddressField.getText();
 		final String memo = this.destinationMemoField.getText();
-		final String amount = this.destinationAmountField.getText();
+		final String amount = this.destinationAmountField.getText().replace(",", "");
 		final String fee = this.transactionFeeField.getText();
-		
-		Log.info("Send button processing: Parameters are: from address: {0}, to address: {1}, " + 
-	             "amount: {2}, memo: {3}, transaction fee: {4}",
-	             sourceAddress, destinationAddress, amount, memo, fee);
 
 		// Verify general correctness.
 		String errorMessage = null;
-		
+
 		if ((sourceAddress == null) || (sourceAddress.trim().length() <= 20))
 		{
-			errorMessage = langUtil.getString("send.cash.panel.option.pane.error.source.address.invalid");
+			errorMessage = "Source address is invalid; it is too short or missing.";
 		} else if (sourceAddress.length() > 512)
 		{
-			errorMessage = langUtil.getString("send.cash.panel.option.pane.error.source.address.too.long");
+			errorMessage = "Source address is invalid; it is too long.";
 		}
-		
+
 		// TODO: full address validation
 		if ((destinationAddress == null) || (destinationAddress.trim().length() <= 0))
 		{
-			errorMessage = langUtil.getString("send.cash.panel.option.pane.error.destination.address.invalid");
+			errorMessage = "Destination address is invalid; it is missing.";
 		} else if (destinationAddress.trim().length() <= 20)
 		{
-			errorMessage = langUtil.getString("send.cash.panel.option.pane.error.destination.address.too.short");
+			errorMessage = "Destination address is invalid; it is too short.";
 		} else if (destinationAddress.length() > 512)
 		{
-			errorMessage = langUtil.getString("send.cash.panel.option.pane.error.destination.address.too.long");
-		} else if (destinationAddress.trim().length() != destinationAddress.length())
-		{
-			errorMessage = langUtil.getString("send.cash.panel.option.pane.error.destination.address.has.spaces");
-		}
-				
-		if ((amount == null) || (amount.trim().length() <= 0))
-		{
-			errorMessage = langUtil.getString("send.cash.panel.option.pane.error.amount.invalid");
-		} else 
-		{
-			try 
-			{
-				double d = Double.valueOf(amount);
-				if (d < 0)
-				{
-					errorMessage = langUtil.getString("send.cash.panel.option.pane.error.amount.negative");
-				}
-			} catch (NumberFormatException nfe)
-			{
-				errorMessage = langUtil.getString("send.cash.panel.option.pane.error.amount.not.number");
-			}
-		}
-		
-		if ((fee == null) || (fee.trim().length() <= 0))
-		{
-			errorMessage = langUtil.getString("send.cash.panel.option.pane.error.fee.invalid");
-		} else 
-		{
-			try 
-			{
-				double d = Double.valueOf(fee);
-				if (d < 0)
-				{
-					errorMessage = langUtil.getString("send.cash.panel.option.pane.error.fee.negative");
-				}
-			} catch (NumberFormatException nfe)
-			{
-				errorMessage = langUtil.getString("send.cash.panel.option.pane.error.fee.not.number");
-			}
+			errorMessage = "Destination address is invalid; it is too long.";
 		}
 
-		if (errorMessage != null)
-		{
-			JOptionPane.showMessageDialog(
-				SendCashPanel.this.getRootPane().getParent(), 
-				errorMessage, langUtil.getString("send.cash.panel.option.pane.error.incorrect.sending.parameters"), JOptionPane.ERROR_MESSAGE);
-			return;
-		}
-		
 		// Prevent accidental sending to non-ZEN addresses (which zend supports) probably because of
 		// ZClassic compatibility
 		if (!installationObserver.isOnTestNet())
 		{
-			if (!(destinationAddress.startsWith("zc") || 
-				  destinationAddress.startsWith("zn") ||
-				  destinationAddress.startsWith("zs")))
+			if (!(destinationAddress.startsWith("t") || destinationAddress.startsWith("z")))
 			{
 				Object[] options = { "OK" };
 
 				JOptionPane.showOptionDialog(
-					SendCashPanel.this.getRootPane().getParent(), 
-					langUtil.getString("send.cash.panel.option.pane.error.destination.address.incorrect.text", destinationAddress),
-					langUtil.getString("send.cash.panel.option.pane.error.destination.address.incorrect.title"),
-					JOptionPane.DEFAULT_OPTION, 
+					SendCashPanel.this.getRootPane().getParent(),
+					"The destination address to send ZCH to:\n" +
+					destinationAddress + "\n"+
+					"does not appear to be a valid 0cash address. ZCH addresses start with t or z!",
+					"Destination address is incorrect...",
+					JOptionPane.DEFAULT_OPTION,
 					JOptionPane.ERROR_MESSAGE,
-					null, 
-					options, 
+					null,
+					options,
 					options[0]);
-				
+
 			    return; // Do not send anything!
 			}
 		}
-		
-		// If a memo is specified, make sure the destination is a Z address.
-		if ((!installationObserver.isOnTestNet()) && 
-			(!Util.stringIsEmpty(memo)) &&
-			(!Util.isZAddress(destinationAddress)))
-		{
-	        int reply = JOptionPane.showConfirmDialog(
-	        		SendCashPanel.this.getRootPane().getParent(), 
-					langUtil.getString("send.cash.panel.option.pane.error.destination.address.notz.text", destinationAddress),
-					langUtil.getString("send.cash.panel.option.pane.error.destination.address.notz.title"),
-			        JOptionPane.YES_NO_OPTION);
-			        
-			if (reply == JOptionPane.NO_OPTION) 
-			{
-			   	return;
-			}
-		}		
-		
-        // Warn the user if there are too many fractional digits in the amount and fee
-		if (hasExcessiveFractionalDigits(amount))
-		{
-	        int reply = JOptionPane.showConfirmDialog(
-	        		SendCashPanel.this.getRootPane().getParent(), 
-					langUtil.getString("send.cash.panel.option.pane.error.destination.amount.fractional.digits", amount),
-					langUtil.getString("send.cash.panel.option.pane.error.destination.fractional.digits.title"),
-			        JOptionPane.YES_NO_OPTION);
-			        
-			if (reply == JOptionPane.NO_OPTION) 
-			{
-			   	return;
-			}
-		}
-		
-		if (hasExcessiveFractionalDigits(fee))
-		{
-	        int reply = JOptionPane.showConfirmDialog(
-	        		SendCashPanel.this.getRootPane().getParent(), 
-					langUtil.getString("send.cash.panel.option.pane.error.destination.fee.fractional.digits", fee),
-					langUtil.getString("send.cash.panel.option.pane.error.destination.fractional.digits.title"),
-			        JOptionPane.YES_NO_OPTION);
-			        
-			if (reply == JOptionPane.NO_OPTION) 
-			{
-			   	return;
-			}
-		}
-		
-		// Get a confirmation from the user about the operation
-        String userDir = OSUtil.getSettingsDirectory();
-        File sendCashNotToBeShownFlagFile = new File(userDir + File.separator + "sendCashWarningNotToBeShown.flag");
-        if (!sendCashNotToBeShownFlagFile.exists())
-        {
-        	Object[] options = 
-        	{ 
-        		langUtil.getString("send.cash.panel.option.pane.confirm.operation.button.yes"),
-        		langUtil.getString("send.cash.panel.option.pane.confirm.operation.button.no"),
-        		langUtil.getString("send.cash.panel.option.pane.confirm.operation.button.not.again")
-        	};
 
-    		int option;
-    		
-    		if (Util.stringIsEmpty(memo))
-    		{
-    			option = JOptionPane.showOptionDialog(
-    				SendCashPanel.this.getRootPane().getParent(), 
-    				langUtil.getString("send.cash.panel.option.pane.confirm.operation.text", 
-    						           amount, sourceAddress, destinationAddress, fee), 
-    			    langUtil.getString("send.cash.panel.option.pane.confirm.operation.title"),
-    			    JOptionPane.DEFAULT_OPTION, 
-    			    JOptionPane.QUESTION_MESSAGE,
-    			    null, 
-    			    options, 
-    			    options[0]);
-    		} else
-    		{
-    			option = JOptionPane.showOptionDialog(
-       				SendCashPanel.this.getRootPane().getParent(), 
-       				langUtil.getString("send.cash.panel.option.pane.confirm.operation.text.with.memo", 
-       						           amount, sourceAddress, destinationAddress, fee, Util.blockWrapString(memo, 50)), 
-       			    langUtil.getString("send.cash.panel.option.pane.confirm.operation.title"),
-       			    JOptionPane.DEFAULT_OPTION, 
-       			    JOptionPane.QUESTION_MESSAGE,
-       			    null, 
-       			    options, 
-       			    options[0]);    			
-    		}
-    		
-    	    if (option == 2)
-    	    {
-    	    	sendCashNotToBeShownFlagFile.createNewFile();
-    	    }
-    	    
-            // on "no" or close ("X")
-            if (option == 1 || option == -1)
-    	    {
-    	    	return;
-    	    }
-    	    
-    	    // 4e075d661a12376b13e9bd95831bc6a002824e029ff50059bd1e28662971e055
-        } 
-				
-        boolean bEncryptedWallet = false;
-		// Backend operations are wrapped inside a wait cursor
-        Cursor oldCursor = this.getRootPane().getParent().getCursor();
-		try
+		if ((amount == null) || (amount.trim().length() <= 0))
 		{
-			this.getRootPane().getParent().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-			// Check for encrypted wallet
-			bEncryptedWallet = this.clientCaller.isWalletEncrypted();
-			if (bEncryptedWallet)
-			{
-				this.getRootPane().getParent().setCursor(oldCursor);
-				PasswordDialog pd = new PasswordDialog((JFrame)(SendCashPanel.this.getRootPane().getParent()));
-				pd.setVisible(true);
-				this.getRootPane().getParent().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-				
-				if (!pd.isOKPressed())
-				{
-					return;
-				}
-				
-				this.clientCaller.unlockWallet(pd.getPassword());
-			}
-			
-			boolean sendChangeBackToAddres = this.sendChangeBackToSourceAddress.isSelected();
-			Log.info("Change send back flag: {0}", sendChangeBackToAddres);
-			if (sendChangeBackToAddres)
-			{
-				if (this.warnAndCheckConditionsForSendingBackChange(sourceAddress, destinationAddress, amount, memo, fee))
-				{
-					String balance = this.clientCaller.getBalanceForAddress(sourceAddress);
-					// Call the send method with change going back to source address
-					operationStatusID = this.clientCaller.sendCashWithReturnOfChange(sourceAddress, destinationAddress, balance, amount, memo, fee);
-				} else
-				{
-					return; // Stop the operation
-				}
-			} else
-			{
-				// Call the wallet send method - old style
-				operationStatusID = this.clientCaller.sendCash(sourceAddress, destinationAddress, amount, memo, fee);
-			}
-					
-			// Make sure the keypool has spare addresses
-			if ((this.backupTracker.getNumTransactionsSinceLastBackup() % 5) == 0)
-			{
-				this.clientCaller.keypoolRefill(100);
-			}
-		} finally
+			errorMessage = "Amount to send is invalid; it is missing.";
+		} else
 		{
-			this.getRootPane().getParent().setCursor(oldCursor);
+			try
+			{
+				double d = Double.valueOf(amount);
+			} catch (NumberFormatException nfe)
+			{
+				errorMessage = "Amount to send is invalid; it is not a number.";
+			}
 		}
-		
+
+		if ((fee == null) || (fee.trim().length() <= 0))
+		{
+			errorMessage = "Transaction fee is invalid; it is missing.";
+		} else
+		{
+			try
+			{
+				double d = Double.valueOf(fee);
+			} catch (NumberFormatException nfe)
+			{
+				errorMessage = "Transaction fee is invalid; it is not a number.";
+			}
+		}
+
+
+		if (errorMessage != null)
+		{
+			JOptionPane.showMessageDialog(
+				SendCashPanel.this.getRootPane().getParent(),
+				errorMessage, "Sending parameters are incorrect", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
+		// Check for encrypted wallet
+		final boolean bEncryptedWallet = this.clientCaller.isWalletEncrypted();
+		if (bEncryptedWallet)
+		{
+			PasswordDialog pd = new PasswordDialog((JFrame)(SendCashPanel.this.getRootPane().getParent()));
+			pd.setVisible(true);
+
+			if (!pd.isOKPressed())
+			{
+				return;
+			}
+
+			this.clientCaller.unlockWallet(pd.getPassword());
+		}
+
+		// Call the wallet send method
+		operationStatusID = this.clientCaller.sendCash(sourceAddress, destinationAddress, amount, memo, fee);
+
+		// Make sure the keypool has spare addresses
+		if ((this.backupTracker.getNumTransactionsSinceLastBackup() % 5) == 0)
+		{
+			this.clientCaller.keypoolRefill(100);
+		}
+
 		// Disable controls after send
-		sendChangeBackToSourceAddress.setEnabled(false);
 		sendButton.setEnabled(false);
 		balanceAddressCombo.setEnabled(false);
 		destinationAddressField.setEnabled(false);
 		destinationAmountField.setEnabled(false);
 		destinationMemoField.setEnabled(false);
 		transactionFeeField.setEnabled(false);
-		
-		
-		final boolean bEncryptedWalletForThread = bEncryptedWallet;
-		// Start a data gathering thread specific to the operation being executed - this is done in a separate 
-		// thread since the server responds more slowly during JoinSplits and this blocks the GUI somewhat.
+
+		// Start a data gathering thread specific to the operation being executed - this is done is a separate
+		// thread since the server responds more slowly during JoinSPlits and this blocks he GUI somewhat.
 		final DataGatheringThread<Boolean> opFollowingThread = new DataGatheringThread<Boolean>(
-			new DataGatheringThread.DataGatherer<Boolean>() 
+			new DataGatheringThread.DataGatherer<Boolean>()
 			{
 				public Boolean gatherData()
 					throws Exception
@@ -673,46 +527,45 @@ public class SendCashPanel
 					Boolean result = clientCaller.isSendingOperationComplete(operationStatusID);
 					long end = System.currentTimeMillis();
 					Log.info("Checking for operation " + operationStatusID + " status done in " + (end - start) + "ms." );
-					
+
 					return result;
 				}
-			}, 
+			},
 			this.errorReporter, 2000, true);
-		
+
 		// Start a timer to update the progress of the operation
 		operationStatusCounter = 0;
-		operationStatusTimer = new Timer(2000, new ActionListener() 
+		operationStatusTimer = new Timer(2000, new ActionListener()
 		{
 			@Override
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(ActionEvent e)
 			{
 				try
 				{
 					// TODO: Handle errors in case of restarted server while wallet is sending ...
 					Boolean opComplete = opFollowingThread.getLastData();
-					
+
 					if ((opComplete != null) && opComplete.booleanValue())
 					{
 						// End the special thread used to follow the operation
 						opFollowingThread.setSuspended(true);
-						
+
 						SendCashPanel.this.reportCompleteOperationToTheUser(
 							amount, sourceAddress, destinationAddress);
-						
-						// Lock the wallet again 
-						if (bEncryptedWalletForThread)
+
+						// Lock the wallet again
+						if (bEncryptedWallet)
 						{
 							SendCashPanel.this.clientCaller.lockWallet();
 						}
-						
+
 						// Restore controls etc.
 						operationStatusCounter = 0;
 						operationStatusID      = null;
 						operationStatusTimer.stop();
 						operationStatusTimer = null;
 						operationStatusProhgressBar.setValue(0);
-						
-						sendChangeBackToSourceAddress.setEnabled(true);
+
 						sendButton.setEnabled(true);
 						balanceAddressCombo.setEnabled(true);
 						destinationAddressField.setEnabled(true);
@@ -722,7 +575,8 @@ public class SendCashPanel
 					} else
 					{
 						// Update the progress
-						operationStatusLabel.setText(langUtil.getString("send.cash.panel.operation.status.progress.label"));
+						operationStatusLabel.setText(
+							"<html><span style=\"color:orange;font-weight:bold\">IN PROGRESS</span></html>");
 						operationStatusCounter += 2;
 						int progress = 0;
 						if (operationStatusCounter <= 100)
@@ -734,7 +588,7 @@ public class SendCashPanel
 						}
 						operationStatusProhgressBar.setValue(progress);
 					}
-					
+
 					SendCashPanel.this.repaint();
 				} catch (Exception ex)
 				{
@@ -747,89 +601,45 @@ public class SendCashPanel
 		operationStatusTimer.start();
 	}
 
-	
-	public void prepareForSending(String address) 
+
+	public void prepareForSending(String address)
 	{
 	    destinationAddressField.setText(address);
 	}
-	
-	
+
+
 	private void updateWalletAddressPositiveBalanceComboBox()
 		throws WalletCallException, IOException, InterruptedException
 	{
-		// If the user has opened the combo box menu - skip update
-		if (this.balanceAddressCombo.isMenuDown())
-		{
-		    Log.info("Skipping refresh of available sending addresses - user menu is open...");
-		    return;
-		}
-		
 		String[][] newAddressBalanceData = this.addressBalanceGatheringThread.getLastData();
-		
+
 		// The data may be null if nothing is yet obtained
 		if (newAddressBalanceData == null)
 		{
 			return;
 		}
-		
-		final int oldSelectedIndex = this.balanceAddressCombo.getSelectedIndex();
-		String originalSelectedAddress = null;
-		if ((this.lastAddressBalanceData != null) && (this.lastAddressBalanceData.length > 0) &&
-			(this.lastAddressBalanceData.length > oldSelectedIndex) &&
-			(balanceAddressCombo.getItemCount() > 0) && (oldSelectedIndex >= 0))
-		{
-			originalSelectedAddress = this.lastAddressBalanceData[oldSelectedIndex][1];
-		}
-		
+
 		lastAddressBalanceData = newAddressBalanceData;
-		
+
 		comboBoxItems = new String[lastAddressBalanceData.length];
 		for (int i = 0; i < lastAddressBalanceData.length; i++)
 		{
-			// Form the current combo item for sending cash. If an address label is available, it gets 
-			// displayed first. If the overall string is too long it gets cut at 120 chars
-			String address = lastAddressBalanceData[i][1];
-			String formattedBalance = new DecimalFormat("########0.00######").format(Double.valueOf(lastAddressBalanceData[i][0]));
-			String label = this.labelStorage.getLabel(address); // Empty str if not found
-			if (label.length() > 0)
-			{
-				label = "[" + label + "] ";
-			}
-			String item = label + formattedBalance + " ZEN - " + address;
-			if (item.length() > 120)
-			{
-				item = item.substring(0, 118) + "...";
-			}
-			
 			// Do numeric formatting or else we may get 1.1111E-5
-			comboBoxItems[i] = item;
+			comboBoxItems[i] =
+				new DecimalFormat("########0.00######").format(Double.valueOf(lastAddressBalanceData[i][0]))  +
+				" - " + lastAddressBalanceData[i][1];
 		}
-		
-		final boolean isEnabled = this.balanceAddressCombo.isEnabled();
+
+		int selectedIndex = balanceAddressCombo.getSelectedIndex();
+		boolean isEnabled = balanceAddressCombo.isEnabled();
 		this.comboBoxParentPanel.remove(balanceAddressCombo);
-		balanceAddressCombo = new DropdownComboBox<>(comboBoxItems);
+		balanceAddressCombo = new JComboBox<>(comboBoxItems);
 		comboBoxParentPanel.add(balanceAddressCombo);
-		// We need to restore the previously selected address in the combo box
-		// The address count/order may have changed as a result of newly confirmed 
-		// transactions, necessitating additional checks.
-		int newIndexToSelect = oldSelectedIndex; // By default index does not change
-		// Try to find the original selected address in the new data - its index may be different
-		// after the data was updated
-		for (int i = 0; i < this.lastAddressBalanceData.length; i++)
-		{
-			String currentAddress = this.lastAddressBalanceData[i][1];
-			if ((currentAddress != null) && (originalSelectedAddress != null) &&
-				 currentAddress.trim().equalsIgnoreCase(originalSelectedAddress.trim()))
-			{
-				newIndexToSelect = i;
-			}
-		}
-		// Restore only the selected index - original address was found (perhaps)
 		if ((balanceAddressCombo.getItemCount() > 0) &&
-			(newIndexToSelect >= 0) &&
-			(balanceAddressCombo.getItemCount() > newIndexToSelect))
-		{		
-			balanceAddressCombo.setSelectedIndex(newIndexToSelect);
+			(selectedIndex >= 0) &&
+			(balanceAddressCombo.getItemCount() > selectedIndex))
+		{
+			balanceAddressCombo.setSelectedIndex(selectedIndex);
 		}
 		balanceAddressCombo.setEnabled(isEnabled);
 
@@ -843,7 +653,7 @@ public class SendCashPanel
 	{
 		// Z Addresses - they are OK
 		String[] zAddresses = clientCaller.getWalletZAddresses();
-		
+
 		// T Addresses created inside wallet that may be empty
 		String[] tAddresses = this.clientCaller.getWalletAllPublicAddresses();
 		Set<String> tStoredAddressSet = new HashSet<>();
@@ -851,7 +661,7 @@ public class SendCashPanel
 		{
 			tStoredAddressSet.add(address);
 		}
-		
+
 		// T addresses with unspent outputs (even if not GUI created)...
 		String[] tAddressesWithUnspentOuts = this.clientCaller.getWalletPublicAddressesWithUnspentOutputs();
 		Set<String> tAddressSetWithUnspentOuts = new HashSet<>();
@@ -859,14 +669,14 @@ public class SendCashPanel
 		{
 			tAddressSetWithUnspentOuts.add(address);
 		}
-		
+
 		// Combine all known T addresses
 		Set<String> tAddressesCombined = new HashSet<>();
 		tAddressesCombined.addAll(tStoredAddressSet);
 		tAddressesCombined.addAll(tAddressSetWithUnspentOuts);
-		
+
 		String[][] tempAddressBalances = new String[zAddresses.length + tAddressesCombined.size()][];
-		
+
 		int count = 0;
 
 		for (String address : tAddressesCombined)
@@ -874,20 +684,20 @@ public class SendCashPanel
 			String balance = this.clientCaller.getBalanceForAddress(address);
 			if (Double.valueOf(balance) > 0)
 			{
-				tempAddressBalances[count++] = new String[] 
-				{  
+				tempAddressBalances[count++] = new String[]
+				{
 					balance, address
 				};
 			}
 		}
-		
+
 		for (String address : zAddresses)
 		{
 			String balance = this.clientCaller.getBalanceForAddress(address);
 			if (Double.valueOf(balance) > 0)
 			{
-				tempAddressBalances[count++] = new String[] 
-				{  
+				tempAddressBalances[count++] = new String[]
+				{
 					balance, address
 				};
 			}
@@ -895,35 +705,36 @@ public class SendCashPanel
 
 		String[][] addressBalances = new String[count][];
 		System.arraycopy(tempAddressBalances, 0, addressBalances, 0, count);
-		
+
 		return addressBalances;
 	}
-	
-	
+
+
 	private void reportCompleteOperationToTheUser(String amount, String sourceAddress, String destinationAddress)
 		throws InterruptedException, WalletCallException, IOException, URISyntaxException
 	{
 		if (clientCaller.isCompletedOperationSuccessful(operationStatusID))
 		{
-			operationStatusLabel.setText(langUtil.getString("send.cash.panel.operation.status.success.label"));
+			operationStatusLabel.setText(
+				"<html><span style=\"color:green;font-weight:bold\">SUCCESSFUL</span></html>");
 			String TXID = clientCaller.getSuccessfulOperationTXID(operationStatusID);
-			
-			Object[] options = langUtil.getString("send.cash.panel.operation.complete.report").split(":");
-			
+
+			Object[] options = { "OK", "Copy transaction ID", "View on the blockchain" };
+
 			int option = JOptionPane.showOptionDialog(
 				SendCashPanel.this.getRootPane().getParent(),
-					langUtil.getString("send.cash.panel.operation.complete.report.success.text",
-						amount,
-						sourceAddress,
-						destinationAddress,
-						TXID),
-					langUtil.getString("send.cash.panel.operation.complete.report.success.title"),
-				JOptionPane.DEFAULT_OPTION, 
+				"Succesfully sent " + amount + " ZCH from address: \n" +
+				sourceAddress + "\n" +
+				"to address: \n" +
+				destinationAddress + "\n\n" +
+				"Transaction ID: " + TXID,
+				"Cash sent successfully",
+				JOptionPane.DEFAULT_OPTION,
 				JOptionPane.INFORMATION_MESSAGE,
-				null, 
-				options, 
+				null,
+				options,
 				options[0]);
-			
+
 		    if (option == 1)
 		    {
 		    	// Copy the transaction ID to clipboard
@@ -934,112 +745,29 @@ public class SendCashPanel
 		    	// Open block explorer
 				Log.info("Transaction ID for block explorer is: " + TXID);
 				// TODO: code duplication with transactions table
-				String urlPrefix = "https://explorer.zensystem.io/tx/";
+				String urlPrefix = "https://explorer.0cash.org/tx/";
 				if (installationObserver.isOnTestNet())
 				{
-					urlPrefix = "https://explorer-testnet.zen-solutions.io/tx/";
+					urlPrefix = "http://testnet.explorer.0cash.xyz/tx/";
 				}
 				Desktop.getDesktop().browse(new URL(urlPrefix + TXID).toURI());
 		    }
-		    
+
 		    // Call the backup tracker - to remind the user
 		    this.backupTracker.handleNewTransaction();
 		} else
 		{
-			String errorMessage = clientCaller.getOperationFinalErrorMessage(operationStatusID); 
+			String errorMessage = clientCaller.getOperationFinalErrorMessage(operationStatusID);
 			operationStatusLabel.setText(
-				langUtil.getString("send.cash.panel.operation.status.error.label", errorMessage));
+				"<html><span style=\"color:red;font-weight:bold\">ERROR: " + errorMessage + "</span></html>");
 
 			JOptionPane.showMessageDialog(
-					SendCashPanel.this.getRootPane().getParent(), 
-					langUtil.getString("send.cash.panel.option.pane.error.report.text",errorMessage),
-					langUtil.getString("send.cash.panel.option.pane.error.report.title"), JOptionPane.ERROR_MESSAGE);
+					SendCashPanel.this.getRootPane().getParent(),
+					"An error occurred when sending cash. Error message is:\n" +
+					errorMessage + "\n\n" +
+					"Please ensure that sending parameters are correct. You may try again later...\n",
+					"Error in sending cash", JOptionPane.ERROR_MESSAGE);
 
 		}
-	}
-	
-	
-	// Checks if a number has more than 8 fractional digits. This is not normally allowed for ZEN
-	// Input must be a decimal number!
-	private boolean hasExcessiveFractionalDigits(String field)
-	{
-		BigDecimal num = new BigDecimal(field);
-		DecimalFormatSymbols decSymbols = new DecimalFormatSymbols(Locale.ROOT);
-		DecimalFormat longFormat = new DecimalFormat("############################0.00###############################", decSymbols);
-		String formattedNumber = longFormat.format(num);
-		String fractionalPart = formattedNumber.substring(formattedNumber.indexOf(".") + 1);
-			
-		if (fractionalPart.length() > 8)
-		{
-			return true;
-		}
-		
-		return false;
-	}
-	
-	
-	/**
-	 * Checks the conditions necessary for sending back the change. Also issues a warning to the user on the nature of this operation.
-	 * 
-	 * @param sourceAddress
-	 * @param destinationAddress
-	 * @param amount
-	 * @param memo
-	 * @param fee
-	 * 
-	 * @return true if all conditions are met and the user has not cancelled the operation
-	 */
-	private boolean warnAndCheckConditionsForSendingBackChange(String sourceAddress, String destinationAddress, String amount, String memo, String fee)
-		throws WalletCallException, InterruptedException, IOException
-	{
-		String balance = this.clientCaller.getBalanceForAddress(sourceAddress);
-		
-		// Get a confirmation from the user about the operation - general warning
-        String userDir = OSUtil.getSettingsDirectory();
-        File sendChangeBackNotToBeShownFlagFile = new File(userDir + File.separator + "sendBackChangeWarningNotToBeShown.flag");
-        if (!sendChangeBackNotToBeShownFlagFile.exists())
-        {
-        	Object[] options = 
-        	{ 
-        		langUtil.getString("send.cash.panel.option.pane.confirm.operation.button.yes"),
-        		langUtil.getString("send.cash.panel.option.pane.confirm.operation.button.no"),
-        		langUtil.getString("send.cash.panel.option.pane.confirm.operation.button.not.again")
-        	};
-
-    		int option = JOptionPane.showOptionDialog(
-    				SendCashPanel.this.getRootPane().getParent(), 
-    				langUtil.getString("send.cash.panel.send.change.back.general.warning"), 
-    			    langUtil.getString("send.cash.panel.send.change.back.general.warning.title"),
-    			    JOptionPane.DEFAULT_OPTION, 
-    			    JOptionPane.WARNING_MESSAGE,
-    			    null, 
-    			    options, 
-    			    options[0]);
-    		
-    	    if (option == 2)
-    	    {
-    	    	sendChangeBackNotToBeShownFlagFile.createNewFile();
-    	    }
-    	    
-            // on "no" or close ("X")
-            if (option == 1 || option == -1)
-    	    {
-    	    	return false;
-    	    }
-        }
-		
-		// Make sure the confirmed balance for the address is sufficient
-		if (new BigDecimal(balance).subtract(new BigDecimal(amount)).subtract(new BigDecimal(fee)).compareTo(new BigDecimal("0")) < 0)
-		{
-			JOptionPane.showMessageDialog(
-				SendCashPanel.this.getRootPane().getParent(), 
-				langUtil.getString("send.cash.panel.insufficient.balance", sourceAddress, balance, amount, fee),
-				langUtil.getString("send.cash.panel.insufficient.balance.title"), 
-				JOptionPane.ERROR_MESSAGE);
-			
-			return false;
-		}
-	
-		return true;
 	}
 }

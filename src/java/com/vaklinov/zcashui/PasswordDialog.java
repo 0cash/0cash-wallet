@@ -1,12 +1,12 @@
 /************************************************************************************************
- *   ____________ _   _  _____          _      _____ _    _ _______          __   _ _      _   
- *  |___  /  ____| \ | |/ ____|        | |    / ____| |  | |_   _\ \        / /  | | |    | |  
- *     / /| |__  |  \| | |     __ _ ___| |__ | |  __| |  | | | |  \ \  /\  / /_ _| | | ___| |_ 
- *    / / |  __| | . ` | |    / _` / __| '_ \| | |_ | |  | | | |   \ \/  \/ / _` | | |/ _ \ __|
- *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
- *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
- *                                       
- * Copyright (c) 2016-2018 The ZEN Developers
+ *  _________          _     ____          _           __        __    _ _      _   _   _ ___
+ * |__  / ___|__ _ ___| |__ / ___|_      _(_)_ __   __ \ \      / /_ _| | | ___| |_| | | |_ _|
+ *   / / |   / _` / __| '_ \\___ \ \ /\ / / | '_ \ / _` \ \ /\ / / _` | | |/ _ \ __| | | || |
+ *  / /| |__| (_| \__ \ | | |___) \ V  V /| | | | | (_| |\ V  V / (_| | | |  __/ |_| |_| || |
+ * /____\____\__,_|___/_| |_|____/ \_/\_/ |_|_| |_|\__, | \_/\_/ \__,_|_|_|\___|\__|\___/|___|
+ *                                                 |___/
+ *
+ * Copyright (c) 2016 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -49,6 +49,8 @@ import javax.swing.JTextField;
 
 /**
  * Dialog to get the user password for encrypted wallets - for unlock.
+ *
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class PasswordDialog
 	extends JDialog
@@ -64,13 +66,12 @@ public class PasswordDialog
 	
 	protected JPanel freeSlotPanel;
 	protected JPanel freeSlotPanel2;
-	private LanguageUtil langUtil;
 	
 	public PasswordDialog(JFrame parent)
 	{
 		super(parent);
-		langUtil = LanguageUtil.instance();
-		this.setTitle(langUtil.getString("dialog.password.title"));
+		
+		this.setTitle("Password...");
 	    this.setLocation(parent.getLocation().x + 50, parent.getLocation().y + 50);
 		this.setModal(true);
 		this.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -80,7 +81,9 @@ public class PasswordDialog
 		controlsPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
 		JPanel tempPanel = new JPanel(new BorderLayout(0, 0));
-		tempPanel.add(this.upperLabel = new JLabel(langUtil.getString("dialog.password.temp.panel.upper.label.text")), BorderLayout.CENTER);
+		tempPanel.add(this.upperLabel = new JLabel("<html>The wallet is encrypted and protected with a password. " +
+		                         "Please enter the password to unlock it temporarily during " +
+				                 "the operation</html>"), BorderLayout.CENTER);
 		controlsPanel.add(tempPanel);
 		
 		JLabel dividerLabel = new JLabel("   ");
@@ -88,7 +91,7 @@ public class PasswordDialog
 		controlsPanel.add(dividerLabel);
 		
 		tempPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-		tempPanel.add(passwordLabel = new JLabel(langUtil.getString("dialog.password.temp.panel.password.label.text")));
+		tempPanel.add(passwordLabel = new JLabel("Password: "));
 		tempPanel.add(passwordField = new JPasswordField(30));
 		controlsPanel.add(tempPanel);
 		
@@ -103,7 +106,10 @@ public class PasswordDialog
 		controlsPanel.add(this.freeSlotPanel2);
 
 		tempPanel = new JPanel(new BorderLayout(0, 0));
-		tempPanel.add(this.lowerLabel = new JLabel(langUtil.getString("dialog.password.temp.panel.lower.label.text")), BorderLayout.CENTER);
+		tempPanel.add(this.lowerLabel = new JLabel("<html><span style=\"font-weight:bold\">" + 
+		                         "WARNING: Never enter your password on a public/shared " +
+		                         "computer or one that you suspect has been infected with malware! " +
+				                 "</span></html>"), BorderLayout.CENTER);
 		controlsPanel.add(tempPanel);
 		
 		this.getContentPane().setLayout(new BorderLayout(0, 0));
@@ -112,10 +118,10 @@ public class PasswordDialog
 		// Form buttons
 		JPanel buttonPanel = new JPanel();
 		buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 3, 3));
-		JButton okButon = new JButton(langUtil.getString("dialog.password.buton.ok.text"));
+		JButton okButon = new JButton("OK");
 		buttonPanel.add(okButon);
 		buttonPanel.add(new JLabel("   "));
-		JButton cancelButon = new JButton(langUtil.getString("dialog.password.buton.cancel.text"));
+		JButton cancelButon = new JButton("Cancel");
 		buttonPanel.add(cancelButon);
 		this.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
 
@@ -155,8 +161,7 @@ public class PasswordDialog
 		{
 			JOptionPane.showMessageDialog(
 				PasswordDialog.this.getParent(), 
-				langUtil.getString("dialog.password.option.pane.process.text"),
-				langUtil.getString("dialog.password.option.pane.process.title"),
+				"The password is empty. Please enter it into the text field.", "Empty...", 
 				JOptionPane.ERROR_MESSAGE);
 			return;
 		}

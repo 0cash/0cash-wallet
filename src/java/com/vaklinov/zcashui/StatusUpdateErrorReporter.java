@@ -1,12 +1,12 @@
 /************************************************************************************************
- *   ____________ _   _  _____          _      _____ _    _ _______          __   _ _      _   
- *  |___  /  ____| \ | |/ ____|        | |    / ____| |  | |_   _\ \        / /  | | |    | |  
- *     / /| |__  |  \| | |     __ _ ___| |__ | |  __| |  | | | |  \ \  /\  / /_ _| | | ___| |_ 
- *    / / |  __| | . ` | |    / _` / __| '_ \| | |_ | |  | | | |   \ \/  \/ / _` | | |/ _ \ __|
- *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
- *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
+ *  _________          _     ____          _           __        __    _ _      _   _   _ ___ 
+ * |__  / ___|__ _ ___| |__ / ___|_      _(_)_ __   __ \ \      / /_ _| | | ___| |_| | | |_ _|
+ *   / / |   / _` / __| '_ \\___ \ \ /\ / / | '_ \ / _` \ \ /\ / / _` | | |/ _ \ __| | | || | 
+ *  / /| |__| (_| \__ \ | | |___) \ V  V /| | | | | (_| |\ V  V / (_| | | |  __/ |_| |_| || | 
+ * /____\____\__,_|___/_| |_|____/ \_/\_/ |_|_| |_|\__, | \_/\_/ \__,_|_|_|\___|\__|\___/|___|
+ *                                                 |___/                                      
  *                                       
- * Copyright (c) 2016-2018 The ZEN Developers
+ * Copyright (c) 2016 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,8 @@ import javax.swing.JOptionPane;
 
 /**
  * Reporter for periodic errors. Will later have options to filter errors etc.
+ * 
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class StatusUpdateErrorReporter 
 {	
@@ -67,8 +69,8 @@ public class StatusUpdateErrorReporter
 			lastReportedErrroTime = time;
 		}
 		
-		String settingsDirectory = ".ZENCashSwingWalletUI";
-		
+		String settingsDirectory = ".0cashWallet";
+
 		try
 		{
 			settingsDirectory = OSUtil.getSettingsDirectory();
@@ -76,11 +78,13 @@ public class StatusUpdateErrorReporter
 		{
 			Log.error("Secondary error: ", e2);
 		}
-		
+
 		JOptionPane.showMessageDialog(
 			parent, 
-			LanguageUtil.instance().getString("status.update.error.reporter.panel.message",settingsDirectory, e.getMessage()),
-			LanguageUtil.instance().getString("status.update.error.reporter.panel.title"),
-			JOptionPane.ERROR_MESSAGE);
+			"An unexpected error occurred during the operation of the GUI wallet.\n" +
+			"Details may be found in the log in directory: " + settingsDirectory + "\n" +
+			"\n" +
+			e.getMessage(),
+			"Error in wallet operation.", JOptionPane.ERROR_MESSAGE);
 	}
 }

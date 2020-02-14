@@ -6,7 +6,7 @@
  *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
  *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
  *                                                                                             
- * Copyright (c) 2016-2018 The ZEN Developers
+ * Copyright (c) 2017 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,8 @@ import com.vaklinov.zcashui.Util;
 
 /**
  * Encapsulates the messaging options that may be set.
+ *
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class MessagingOptions
 {
@@ -56,7 +58,7 @@ public class MessagingOptions
 	
 	public MessagingOptions()
 	{
-		// Default values set if not loaded etc.
+		// Default values set if not loade etc.
 		this.automaticallyAddUsersIfNotExplicitlyImported = true;
 		this.amountToSend = this.transactionFee = 0.0001d;
 	}

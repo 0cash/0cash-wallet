@@ -6,7 +6,7 @@
  *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
  *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
  *                                                                                             
- * Copyright (c) 2016-2018 The ZEN Developers
+ * Copyright (c) 2017 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -64,6 +64,8 @@ import com.vaklinov.zcashui.ZCashInstallationObserver.DaemonInfo;
 
 /**
  * Encapsulates access to IPFS for file sharing.
+ *
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class IPFSWrapper
 {
@@ -195,7 +197,7 @@ public class IPFSWrapper
 	
 	// true if started OK
 	private boolean ensureIPFSIsRunning()
-		throws IOException, InterruptedException, URISyntaxException
+		throws IOException, InterruptedException
 	{
 		// TODO: As of Nov 2017 the IPFS wallet integration is suspended. This method just returns
 		// true. This is to be corrected when IPFS integration resumes.
@@ -220,7 +222,7 @@ public class IPFSWrapper
 	
 	// true if started OK
 	private boolean startIPFS()
-		throws IOException, InterruptedException, URISyntaxException
+		throws IOException, InterruptedException
 	{
 		// Warn user if executable and dir are missing!
 		File dir = new File(this.getIPFSDirectory());
@@ -325,7 +327,7 @@ public class IPFSWrapper
 			"the details of IPFS at this web site: https://ipfs.io/\n"                           +
 			"\n"                                                                                 +
 			"The IPFS server needs TCP ports 4001, 5001, 8080 on the system for its own use!\n"  +
-			"The IPFS server will be stopped automatically if you quit the Horizen wallet. To\n" +
+			"The IPFS server will be stopped automatically if you quit the 0cash wallet. To\n" +
 			"ensure that your contacts can reach the data you share, you may not quit the\n"     +
 			"wallet for as long as you expect your contacts to access the data. The data you\n"  + 
 			"share over IPFS is public - may be accessed by anyone! The IPFS server startup\n"   +
@@ -374,14 +376,14 @@ public class IPFSWrapper
 	
 	
 	private String getIPFSFullExecutablePath()
-		throws IOException, URISyntaxException
+		throws IOException
 	{
 		return this.getIPFSDirectory() + File.separator + this.getIPFSExecutableName();
 	}
 	
 	
 	private String getIPFSDirectory()
-		throws IOException, URISyntaxException
+		throws IOException
 	{
 		String walletBase = OSUtil.getProgramDirectory();
 		

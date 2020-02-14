@@ -6,7 +6,7 @@
  *   / /__| |____| |\  | |___| (_| \__ \ | | | |__| | |__| |_| |_   \  /\  / (_| | | |  __/ |_ 
  *  /_____|______|_| \_|\_____\__,_|___/_| |_|\_____|\____/|_____|   \/  \/ \__,_|_|_|\___|\__|
  *                                                                                             
- * Copyright (c) 2016-2018 The ZEN Developers
+ * Copyright (c) 2017 Ivan Vaklinov <ivan@vaklinov.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,16 +41,17 @@ import java.io.Writer;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.WriterConfig;
-import com.vaklinov.zcashui.LanguageUtil;
 import com.vaklinov.zcashui.Util;
 
 
 /**
  * Encapsulates a messaging identity.
+ *
+ * @author Ivan Vaklinov <ivan@vaklinov.com>
  */
 public class MessagingIdentity
 {
-	// Fields based on the ZEN messaging protocol
+	// Fields based on the ZCH messaging protocol
 	// https://github.com/ZencashOfficial/messaging-protocol/blob/master/README.md
 	private String nickname;
 	private String sendreceiveaddress;
@@ -63,11 +64,10 @@ public class MessagingIdentity
 	private String facebook;
 	private String twitter;
 	
-	// Additional fields not based on the ZEN messaging protocol
+	// Additional fields not based on the ZCH messaging protocol
 	private boolean isAnonymous; // If the remote contact sends messages anonymously
 	private String threadID; // Thread ID for anonymous messages
 	private boolean isGroup; // If it represents a messaging group
-	private LanguageUtil langUtil;
 	
 	// TODO: automatically cut fields to XXX length to avoid issues with accidental big data
 	
@@ -76,8 +76,7 @@ public class MessagingIdentity
 		// By default it is not anonymous - filling the rest is the responsibility of the caller
 		this.isAnonymous = false;
 		this.isGroup     = false;
-		this.threadID    = "";
-		langUtil = LanguageUtil.instance();
+		this.threadID    = "";	
 	}
 	
 	
